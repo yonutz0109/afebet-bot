@@ -1,10 +1,7 @@
 {
   "name": "safebet-bot",
   "version": "1.0.0",
-  "private": true,
   "scripts": {
-    "build": "echo 'static app - no build needed'",
-    "start": "echo 'static app'"
-  },
-  "dependencies": {}
+    "build": "echo 'No build needed'"
+  }
 }
