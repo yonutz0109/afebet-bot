@@ -1,1 +1,10 @@
-{"name":"safebet-bot","version":"1.0.1","private":true,"scripts":{},"dependencies":{}}
+{
+  "name": "safebet-bot",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo 'static app - no build needed'",
+    "start": "echo 'static app'"
+  },
+  "dependencies": {}
+}
