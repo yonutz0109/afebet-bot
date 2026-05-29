@@ -1,7 +1,9 @@
 {
-  "name": "safebet-bot",
-  "version": "1.0.0",
+  "name": "safebet-bot-real-live",
+  "version": "2.0.0",
+  "type": "module",
   "scripts": {
-    "build": "echo 'No build needed'"
-  }
+    "build": "mkdir -p dist && cp index.html dist/index.html && cp manifest.json dist/manifest.json && cp sw.js dist/sw.js && cp icon.svg dist/icon.svg"
+  },
+  "dependencies": {}
 }
