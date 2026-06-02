@@ -1,6 +1,6 @@
 {
   "name": "safebet-bot-smart-api-football",
-  "version": "6.0.0",
+  "version": "6.1.0",
   "type": "module",
   "scripts": {
     "build": "mkdir -p dist && cp index.html dist/index.html && cp manifest.json dist/manifest.json && cp sw.js dist/sw.js && cp icon.svg dist/icon.svg"
