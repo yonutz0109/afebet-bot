@@ -1,33 +1,103 @@
-const ODDS_API = "https://api.the-odds-api.com/v4/sports/soccer/odds";
-const MIN_SAFE_SCORE = 75;
-function impliedProb(odd){return 1/Number(odd)}
-function safeScore(odd, marketKey){const prob=impliedProb(odd);let score=Math.round(prob*100);if(marketKey==="h2h")score-=4;if(odd>=1.12&&odd<=1.45)score+=8;if(odd>1.65)score-=20;return Math.max(0,Math.min(95,score))}
-function labelPick(outcomeName, marketKey, home, away){if(marketKey==="h2h"){if(outcomeName===home)return"1 - câștigă gazdele";if(outcomeName===away)return"2 - câștigă oaspeții";if(outcomeName==="Draw")return"X - egal"}return outcomeName}
-function roDate(iso){if(!iso)return"";return new Date(iso).toLocaleString("ro-RO",{timeZone:"Europe/Bucharest"})}
+const ODDS_API="https://api.the-odds-api.com/v4/sports/soccer/odds";
+const MIN_SAFE_SCORE=75;
+const MARKETS=["h2h","totals","spreads"];
+
+function marketLabel(k){return({h2h:"1X2",totals:"Goluri over/under",spreads:"Handicap"}[k]||k||"necunoscută")}
+function category(k){if(k==="h2h")return"h2h";if((k||"").includes("total"))return"totals";if((k||"").includes("spread"))return"spreads";return"other"}
+function scoreFromOdd(odd,market){let s=Math.round((1/Number(odd))*100);if(market==="h2h")s-=4;if((market||"").includes("total"))s-=1;if((market||"").includes("spread"))s-=3;if(odd>=1.12&&odd<=1.45)s+=8;if(odd>1.65)s-=20;if(odd>1.90)s-=30;return Math.max(0,Math.min(95,s))}
+function pickLabel(outcome,market,home,away){let n=outcome?.name||"";let p=outcome?.point!=null?` ${outcome.point}`:"";if(market==="h2h"){if(n===home)return"1 - câștigă gazdele";if(n===away)return"2 - câștigă oaspeții";if(n==="Draw")return"X - egal"}if((market||"").includes("total"))return `${n}${p} goluri`;if((market||"").includes("spread"))return `${n} handicap ${p}`;return `${n}${p}`.trim()||"Selecție necunoscută"}
+function roDate(iso){return iso?new Date(iso).toLocaleString("ro-RO",{timeZone:"Europe/Bucharest"}):""}
+function addTop(list,c){list.push(c);list.sort((a,b)=>(b.safeScore||0)-(a.safeScore||0));if(list.length>5)list.pop()}
+function clean(c){if(!c)return c;const x={...c};delete x.rawScore;return x}
+
 export default async function handler(req,res){
- const key=process.env.ODDS_API_KEY;
- if(!key){return res.status(500).json({error:"Lipsește ODDS_API_KEY în Vercel.",help:"Vercel → proiect → Environment Variables → adaugă ODDS_API_KEY, apoi Redeploy."})}
- const url=`${ODDS_API}?apiKey=${key}&regions=eu&markets=h2h&oddsFormat=decimal&dateFormat=iso`;
+ const oddsKey=process.env.ODDS_API_KEY;
+ if(!oddsKey)return res.status(500).json({error:"Lipsește ODDS_API_KEY în Vercel.",help:"Adaugă ODDS_API_KEY în Environment Variables și Redeploy."});
+
  try{
-  const r=await fetch(url); const data=await r.json();
-  if(!r.ok){return res.status(500).json({error:data?.message||"The Odds API a returnat eroare.",help:"Verifică cheia ODDS_API_KEY și numărul de request-uri disponibile."})}
-  let bestSafe=null,bestRejected=null,eventsChecked=0,outcomesChecked=0;
-  for(const event of data){
-   eventsChecked++; const home=event.home_team, away=event.away_team;
-   for(const bookmaker of event.bookmakers||[]){
-    const market=bookmaker.markets?.find(m=>m.key==="h2h"); if(!market)continue;
-    for(const outcome of market.outcomes||[]){
-     outcomesChecked++; const odd=Number(outcome.price); if(!odd)continue;
-     const score=safeScore(odd,market.key);
-     const candidate={match:`${home} vs ${away}`,pick:labelPick(outcome.name,market.key,home,away),odd:odd.toFixed(2),safeScore:score,startTime:roDate(event.commence_time),reason:`Cotă analizată din piața 1X2. Bookmaker: ${bookmaker.title}.`,bookmaker:bookmaker.title,rejectReason:score<MIN_SAFE_SCORE?`Safe Score ${score}/100 este sub pragul minim ${MIN_SAFE_SCORE}/100.`:"A fost respins de filtrele de cotă/risc.",rawScore:score};
-     if(score>=MIN_SAFE_SCORE&&odd>=1.12&&odd<=1.65){if(!bestSafe||candidate.rawScore>bestSafe.rawScore)bestSafe=candidate}
-     else{if(!bestRejected||candidate.rawScore>bestRejected.rawScore)bestRejected=candidate}
+  const url=`${ODDS_API}?apiKey=${oddsKey}&regions=eu&markets=${MARKETS.join(",")}&oddsFormat=decimal&dateFormat=iso`;
+  const r=await fetch(url,{cache:"no-store"});
+  const data=await r.json();
+
+  if(!r.ok)return res.status(500).json({error:data?.message||"The Odds API a returnat eroare.",help:"Dacă totals/spreads nu sunt permise pe planul tău, refacem pe h2h doar."});
+
+  let eventsChecked=Array.isArray(data)?data.length:0,outcomesChecked=0,bestSafe=null,bestOverall=null,firstAvailable=null,topOverall=[];
+  let marketStats={h2h:0,totals:0,spreads:0,other:0};
+
+  for(const ev of (data||[])){
+   const home=ev.home_team||"Gazde", away=ev.away_team||"Oaspeți";
+   for(const bookmaker of (ev.bookmakers||[])){
+    for(const market of (bookmaker.markets||[])){
+     const mk=market.key||"unknown", cat=category(mk);
+     marketStats[cat]=(marketStats[cat]||0)+(market.outcomes||[]).length;
+
+     for(const outcome of (market.outcomes||[])){
+      outcomesChecked++;
+      const odd=Number(outcome.price);
+      if(!odd)continue;
+
+      const score=scoreFromOdd(odd,mk);
+      const candidate={
+       match:`${home} vs ${away}`,
+       pick:pickLabel(outcome,mk,home,away),
+       marketKey:mk,
+       marketLabel:marketLabel(mk),
+       odd:odd.toFixed(2),
+       safeScore:score,
+       startTime:roDate(ev.commence_time),
+       bookmaker:bookmaker.title||"Bookmaker",
+       reason:score>=MIN_SAFE_SCORE
+        ?"Selecția trece pragul SafeBet."
+        :`Nu recomand pariu: Safe Score ${score}/100 este sub pragul 75/100, dar acesta este cel mai bun găsit.`,
+       rejectReason:`Safe Score ${score}/100 este sub pragul minim ${MIN_SAFE_SCORE}/100.`,
+       verdict:score>=MIN_SAFE_SCORE?"JOACĂ":"CEL MAI BUN GĂSIT",
+       rawScore:score
+      };
+
+      if(!firstAvailable)firstAvailable=candidate;
+      if(!bestOverall||candidate.rawScore>bestOverall.rawScore)bestOverall=candidate;
+      addTop(topOverall,{...candidate});
+
+      if(score>=MIN_SAFE_SCORE&&odd>=1.12&&odd<=1.65){
+       if(!bestSafe||candidate.rawScore>bestSafe.rawScore)bestSafe=candidate;
+      }
+     }
     }
    }
   }
-  const reportBase={eventsChecked,outcomesChecked,minSafeScore:MIN_SAFE_SCORE,scannedAt:roDate(new Date().toISOString())};
-  if(bestSafe){delete bestSafe.rawScore;return res.status(200).json({tip:bestSafe,report:reportBase})}
-  if(bestRejected)delete bestRejected.rawScore;
-  return res.status(200).json({tip:null,report:{...reportBase,bestRejected}});
- }catch(e){return res.status(500).json({error:"Nu am putut citi datele de cote.",help:"Încearcă din nou sau verifică logurile din Vercel."})}
+
+  const report={
+   eventsChecked,
+   outcomesChecked,
+   minSafeScore:MIN_SAFE_SCORE,
+   scannedAt:roDate(new Date().toISOString()),
+   marketStats,
+   bestOverall:clean(bestOverall),
+   firstAvailable:clean(firstAvailable),
+   topOverall:topOverall.map(clean)
+  };
+
+  if(bestSafe){
+   bestSafe.verdict="JOACĂ";
+   return res.status(200).json({
+    accepted:true,
+    tip:clean(bestSafe),
+    report,
+    message:"Recomandare peste pragul minim."
+   });
+  }
+
+  return res.status(200).json({
+   accepted:false,
+   tip:clean(bestOverall||firstAvailable),
+   report,
+   message:"Nu recomand pariu acum, dar afișez cea mai bună selecție găsită."
+  });
+
+ }catch(e){
+  return res.status(500).json({
+   error:"Nu am putut citi datele din API.",
+   help:"Verifică logurile Vercel."
+  });
+ }
 }
