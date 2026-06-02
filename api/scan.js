@@ -1,17 +1,110 @@
 const ODDS_API="https://api.the-odds-api.com/v4/sports/soccer/odds";
+const FOOTBALL_API="https://v3.football.api-sports.io";
 const MIN_SAFE_SCORE=75;
 const MARKETS=["h2h","totals","spreads"];
 
 function marketLabel(k){return({h2h:"1X2",totals:"Goluri over/under",spreads:"Handicap"}[k]||k||"necunoscută")}
 function category(k){if(k==="h2h")return"h2h";if((k||"").includes("total"))return"totals";if((k||"").includes("spread"))return"spreads";return"other"}
-function scoreFromOdd(odd,market){let s=Math.round((1/Number(odd))*100);if(market==="h2h")s-=4;if((market||"").includes("total"))s-=1;if((market||"").includes("spread"))s-=3;if(odd>=1.12&&odd<=1.45)s+=8;if(odd>1.65)s-=20;if(odd>1.90)s-=30;return Math.max(0,Math.min(95,s))}
+function baseScore(odd,market){let s=Math.round((1/Number(odd))*100);if(market==="h2h")s-=4;if((market||"").includes("total"))s-=1;if((market||"").includes("spread"))s-=3;if(odd>=1.12&&odd<=1.45)s+=8;if(odd>1.65)s-=20;if(odd>1.90)s-=30;return Math.max(0,Math.min(95,s))}
 function pickLabel(outcome,market,home,away){let n=outcome?.name||"";let p=outcome?.point!=null?` ${outcome.point}`:"";if(market==="h2h"){if(n===home)return"1 - câștigă gazdele";if(n===away)return"2 - câștigă oaspeții";if(n==="Draw")return"X - egal"}if((market||"").includes("total"))return `${n}${p} goluri`;if((market||"").includes("spread"))return `${n} handicap ${p}`;return `${n}${p}`.trim()||"Selecție necunoscută"}
 function roDate(iso){return iso?new Date(iso).toLocaleString("ro-RO",{timeZone:"Europe/Bucharest"}):""}
 function addTop(list,c){list.push(c);list.sort((a,b)=>(b.safeScore||0)-(a.safeScore||0));if(list.length>5)list.pop()}
 function clean(c){if(!c)return c;const x={...c};delete x.rawScore;return x}
 
+async function footballFetch(path,key){
+ const r=await fetch(`${FOOTBALL_API}${path}`,{headers:{"x-apisports-key":key}});
+ if(!r.ok)return null;
+ return await r.json();
+}
+
+const teamCache=new Map();
+const statsCache=new Map();
+
+async function findTeamId(name,key){
+ if(teamCache.has(name))return teamCache.get(name);
+ const data=await footballFetch(`/teams?search=${encodeURIComponent(name)}`,key);
+ const id=data?.response?.[0]?.team?.id||null;
+ teamCache.set(name,id);
+ return id;
+}
+
+function formString(fixtures,teamId){
+ let out=[];
+ for(const f of fixtures||[]){
+  const h=f.teams?.home?.id===teamId;
+  const a=f.teams?.away?.id===teamId;
+  if(!h&&!a)continue;
+  const hg=f.goals?.home, ag=f.goals?.away;
+  if(hg==null||ag==null)continue;
+  const gf=h?hg:ag;
+  const ga=h?ag:hg;
+  out.push(gf>ga?"W":gf===ga?"D":"L");
+  if(out.length>=5)break;
+ }
+ return out.join("")||"n/a";
+}
+
+function formPoints(form){
+ return [...(form||"")].reduce((s,x)=>s+(x==="W"?3:x==="D"?1:0),0);
+}
+
+async function getFootballStats(home,away,key){
+ if(!key){
+  return {boost:0,note:"API_FOOTBALL_KEY lipsește. Folosesc doar cotele.",homeForm:"n/a",awayForm:"n/a",h2hCount:0};
+ }
+
+ const cacheKey=home+"|"+away;
+ if(statsCache.has(cacheKey))return statsCache.get(cacheKey);
+
+ try{
+  const homeId=await findTeamId(home,key);
+  const awayId=await findTeamId(away,key);
+
+  if(!homeId||!awayId){
+   const v={boost:0,note:"Nu am găsit echipele în API-FOOTBALL. Folosesc doar cotele.",homeForm:"n/a",awayForm:"n/a",h2hCount:0};
+   statsCache.set(cacheKey,v);
+   return v;
+  }
+
+  const [hf,af,h2h]=await Promise.all([
+   footballFetch(`/fixtures?team=${homeId}&last=5`,key),
+   footballFetch(`/fixtures?team=${awayId}&last=5`,key),
+   footballFetch(`/fixtures/headtohead?h2h=${homeId}-${awayId}&last=5`,key)
+  ]);
+
+  const homeForm=formString(hf?.response,homeId);
+  const awayForm=formString(af?.response,awayId);
+  const hp=formPoints(homeForm);
+  const ap=formPoints(awayForm);
+  const h2hCount=h2h?.response?.length||0;
+
+  let boost=0;
+  const diff=Math.abs(hp-ap);
+  if(diff>=6)boost+=3;
+  else if(diff>=3)boost+=2;
+  if(h2hCount>=3)boost+=1;
+
+  const v={
+   boost,
+   homeForm,
+   awayForm,
+   h2hCount,
+   note:`Formă recentă: ${home} ${homeForm} (${hp}p), ${away} ${awayForm} (${ap}p). Bonus API-FOOTBALL: +${boost}.`
+  };
+
+  statsCache.set(cacheKey,v);
+  return v;
+ }catch(e){
+  const v={boost:0,note:"API-FOOTBALL nu a putut fi citit complet. Folosesc doar cotele.",homeForm:"n/a",awayForm:"n/a",h2hCount:0};
+  statsCache.set(cacheKey,v);
+  return v;
+ }
+}
+
 export default async function handler(req,res){
  const oddsKey=process.env.ODDS_API_KEY;
+ const footballKey=process.env.API_FOOTBALL_KEY;
+
  if(!oddsKey)return res.status(500).json({error:"Lipsește ODDS_API_KEY în Vercel.",help:"Adaugă ODDS_API_KEY în Environment Variables și Redeploy."});
 
  try{
@@ -19,13 +112,15 @@ export default async function handler(req,res){
   const r=await fetch(url,{cache:"no-store"});
   const data=await r.json();
 
-  if(!r.ok)return res.status(500).json({error:data?.message||"The Odds API a returnat eroare.",help:"Dacă totals/spreads nu sunt permise pe planul tău, refacem pe h2h doar."});
+  if(!r.ok)return res.status(500).json({error:data?.message||"The Odds API a returnat eroare.",help:"Verifică cheia sau piețele disponibile."});
 
   let eventsChecked=Array.isArray(data)?data.length:0,outcomesChecked=0,bestSafe=null,bestOverall=null,firstAvailable=null,topOverall=[];
   let marketStats={h2h:0,totals:0,spreads:0,other:0};
 
   for(const ev of (data||[])){
    const home=ev.home_team||"Gazde", away=ev.away_team||"Oaspeți";
+   const footballStats=await getFootballStats(home,away,footballKey);
+
    for(const bookmaker of (ev.bookmakers||[])){
     for(const market of (bookmaker.markets||[])){
      const mk=market.key||"unknown", cat=category(mk);
@@ -36,7 +131,8 @@ export default async function handler(req,res){
       const odd=Number(outcome.price);
       if(!odd)continue;
 
-      const score=scoreFromOdd(odd,mk);
+      const score=Math.max(0,Math.min(95,baseScore(odd,mk)+Number(footballStats.boost||0)));
+
       const candidate={
        match:`${home} vs ${away}`,
        pick:pickLabel(outcome,mk,home,away),
@@ -46,8 +142,9 @@ export default async function handler(req,res){
        safeScore:score,
        startTime:roDate(ev.commence_time),
        bookmaker:bookmaker.title||"Bookmaker",
+       footballStats,
        reason:score>=MIN_SAFE_SCORE
-        ?"Selecția trece pragul SafeBet."
+        ?"Selecția trece pragul SafeBet, inclusiv analiza API-FOOTBALL."
         :`Nu recomand pariu: Safe Score ${score}/100 este sub pragul 75/100, dar acesta este cel mai bun găsit.`,
        rejectReason:`Safe Score ${score}/100 este sub pragul minim ${MIN_SAFE_SCORE}/100.`,
        verdict:score>=MIN_SAFE_SCORE?"JOACĂ":"CEL MAI BUN GĂSIT",
