@@ -102,50 +102,42 @@ function clean(c){
   delete x.rawScore;
   return x;
 }
-
 export default async function handler(req,res){
   let oddsKey=process.env.ODDS_API_KEY;
   let footballKey=process.env.API_FOOTBALL_KEY;
   if(!oddsKey){
     return res.status(500).json({error:"Lipsește ODDS_API_KEY în Vercel.",help:"Adaugă ODDS_API_KEY și Redeploy."});
   }
-
   try{
     let url=`${ODDS_API}?apiKey=${oddsKey}&regions=eu&markets=${MARKETS.join(",")}&oddsFormat=decimal&dateFormat=iso`;
     let r=await fetch(url,{cache:"no-store"});
     let data=await r.json();
-
     if(!r.ok){
       return res.status(500).json({
         error:data?.message||"The Odds API a returnat eroare.",
         help:"Dacă eroarea spune că o piață nu este disponibilă, facem fallback la piețele acceptate pe planul tău."
       });
     }
-
     let bestSafe=null;
     let bestOverall=null;
     let topOverall=[];
     let eventsChecked=0;
     let outcomesChecked=0;
     let marketStats={h2h:0,totals:0,spreads:0,corners:0,cards:0};
-
     for(const ev of data){
       eventsChecked++;
       let home=ev.home_team;
       let away=ev.away_team;
       let footballStats=await getStats(home,away,footballKey);
-
       for(const bookmaker of ev.bookmakers||[]){
         for(const market of bookmaker.markets||[]){
           let mk=market.key;
           let cat=category(mk);
           if(marketStats[cat]!==undefined)marketStats[cat]+=(market.outcomes||[]).length;
-
           for(const outcome of market.outcomes||[]){
             outcomesChecked++;
             let odd=Number(outcome.price);
             if(!odd)continue;
-
             let score=Math.max(0,Math.min(95,baseSafeScore(odd,mk)+Number(footballStats.boost||0)));
             let candidate={
               match:`${home} vs ${away}`,
@@ -162,10 +154,8 @@ export default async function handler(req,res){
               verdict:score>=MIN_SAFE_SCORE?"JOACĂ":(score>=65?"ATENȚIE":"NU JOCA"),
               rawScore:score
             };
-
             if(!bestOverall||candidate.rawScore>bestOverall.rawScore)bestOverall=candidate;
             addTop(topOverall,{...candidate});
-
             if(score>=MIN_SAFE_SCORE && odd>=1.12 && odd<=1.65){
               if(!bestSafe||candidate.rawScore>bestSafe.rawScore)bestSafe=candidate;
             }
@@ -173,7 +163,6 @@ export default async function handler(req,res){
         }
       }
     }
-
     let report={
       eventsChecked,
       outcomesChecked,
@@ -183,12 +172,10 @@ export default async function handler(req,res){
       bestOverall:clean(bestOverall),
       topOverall:topOverall.map(clean)
     };
-
     if(bestSafe){
       bestSafe.verdict="JOACĂ";
       return res.status(200).json({tip:clean(bestSafe),report});
     }
-
     return res.status(200).json({tip:null,report});
   }catch(e){
     return res.status(500).json({

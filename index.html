@@ -97,30 +97,33 @@ function verdictClass(v){
   if(v==="ATENȚIE")return"medium";
   return"bad";
 }
-function renderSelection(t, isRecommended){
-  currentTip=isRecommended?t:null;
+function selectionCard(t, title, isRecommended){
   const cls=verdictClass(t.verdict);
-  document.getElementById("recommendation").innerHTML=`
-    <div class="label">Meci</div>
+  return `<div class="report-box">
+    <div class="label">${title}</div>
     <div class="value">${t.match}</div>
-
     <div class="label">Selecție</div>
     <div class="value">${t.pick}</div>
-
     <span class="pill">Piață: ${t.marketLabel}</span>
     <span class="pill">Cotă: ${t.odd}</span>
     <span class="pill">Safe Score: ${t.safeScore}/100</span>
     <span class="pill">Bookmaker: ${t.bookmaker}</span>
     <span class="pill">Start: ${t.startTime||"necunoscut"}</span>
-
-    <div class="report-box">
+    <div style="margin-top:12px">
       <div class="label">Verdict</div>
       <div class="value ${cls}">${t.verdict}</div>
-      <div class="small">${t.reason}</div>
+      <div class="small">${isRecommended ? t.reason : (t.rejectReason || t.reason)}</div>
     </div>
-
     ${statBox(t.footballStats)}
-  `;
+  </div>`;
+}
+function renderSelection(t, isRecommended){
+  currentTip=isRecommended?t:null;
+  document.getElementById("recommendation").innerHTML=selectionCard(
+    t,
+    isRecommended ? "Recomandare acceptată" : "Cea mai bună selecție găsită, dar respinsă",
+    isRecommended
+  );
 }
 function marketsBox(r){
   let m=r.marketStats||{};
@@ -131,9 +134,6 @@ function marketsBox(r){
     <span class="pill">Handicap: ${m.spreads||0}</span>
     <span class="pill">Cornere: ${m.corners||0}</span>
     <span class="pill">Cartonașe: ${m.cards||0}</span>
-    <div class="small" style="margin-top:10px">
-      Cornerele și cartonașele apar doar dacă providerul le returnează pentru bookmakerii disponibili.
-    </div>
   </div>`;
 }
 function topBox(list){
@@ -152,20 +152,9 @@ function topBox(list){
   </div>`;
 }
 function renderReport(r){
+  currentTip=null;
   const best=r.bestOverall;
-  let bestHtml="";
-  if(best){
-    bestHtml=`<div class="report-box">
-      <div class="label">Cea mai bună selecție găsită</div>
-      <div class="value">${best.match}</div>
-      <div class="value">${best.pick}</div>
-      <span class="pill">Piață: ${best.marketLabel}</span>
-      <span class="pill">Cotă: ${best.odd}</span>
-      <span class="pill">Safe Score: ${best.safeScore}/100</span>
-      <span class="pill">Prag: ${r.minSafeScore}/100</span>
-      <div class="small" style="margin-top:10px">Nu este recomandată pentru joc: ${best.rejectReason}</div>
-    </div>`;
-  }
+  const bestHtml=best ? selectionCard(best, "Cea mai bună selecție găsită, dar respinsă", false) : "";
   document.getElementById("recommendation").innerHTML=`
     <div class="report-box">
       <div class="label">Raport scanare</div>
