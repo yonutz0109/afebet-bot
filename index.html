@@ -39,7 +39,7 @@ button.danger{background:#ef4444}
 </div>
 
 <div class="card">
-  <div class="tip-title">Cea mai safe selecție</div>
+  <div class="tip-title">Cea mai safe selecție v4.2</div>
   <div id="status" class="small">Apasă „Scanează”.</div>
   <div id="recommendation" style="margin-top:14px"></div>
   <button onclick="scanRealMatches()">Scanează</button>
@@ -181,8 +181,13 @@ async function scanRealMatches(){
       return;
     }
     if(data.tip){
-      st.innerHTML=`<span class="success">Am găsit cea mai safe selecție peste prag.</span>`;
-      renderSelection(data.tip,true);
+      if(data.fallback){
+        st.innerHTML=`<span class="warning">Am afișat cea mai safe selecție găsită, dar este sub prag.</span>`;
+        renderSelection(data.tip,false);
+      }else{
+        st.innerHTML=`<span class="success">Am găsit cea mai safe selecție peste prag.</span>`;
+        renderSelection(data.tip,true);
+      }
     }else{
       st.innerHTML=`<span class="warning">Nu am găsit momentan o selecție suficient de safe.</span>`;
       renderReport(data.report||{});

@@ -1,7 +1,7 @@
 const ODDS_API="https://api.the-odds-api.com/v4/sports/soccer/odds";
 const FOOTBALL_API="https://v3.football.api-sports.io";
-const MIN_SAFE_SCORE=75;
-const MARKETS=["h2h","totals","spreads","alternate_totals","alternate_spreads","team_totals","corners","alternate_corners","cards"];
+const MIN_SAFE_SCORE=60;
+const MARKETS=["h2h","totals","spreads"];
 
 function marketLabel(k){
   return({
@@ -151,7 +151,7 @@ export default async function handler(req,res){
               footballStats,
               reason:`Selectată ca cea mai safe opțiune disponibilă după cote, piață și verificare API-FOOTBALL.`,
               rejectReason:score<MIN_SAFE_SCORE?`Safe Score ${score}/100 este sub pragul minim ${MIN_SAFE_SCORE}/100.`:"Respinsă de filtrele de cotă/risc.",
-              verdict:score>=MIN_SAFE_SCORE?"JOACĂ":(score>=65?"ATENȚIE":"NU JOCA"),
+              verdict:score>=MIN_SAFE_SCORE?"JOACĂ":(score>=50?"ATENȚIE":"NU JOCA"),
               rawScore:score
             };
             if(!bestOverall||candidate.rawScore>bestOverall.rawScore)bestOverall=candidate;
@@ -174,9 +174,18 @@ export default async function handler(req,res){
     };
     if(bestSafe){
       bestSafe.verdict="JOACĂ";
-      return res.status(200).json({tip:clean(bestSafe),report});
+      return res.status(200).json({tip:clean(bestSafe),report,fallback:false});
     }
-    return res.status(200).json({tip:null,report});
+
+    // Daca nu exista o selectie peste prag, aratam oricum cea mai buna selectie gasita.
+    // Asa utilizatorul vede mereu meciul/pariul cel mai safe disponibil in acel moment.
+    if(bestOverall){
+      bestOverall.verdict = bestOverall.safeScore >= 50 ? "ATENȚIE" : "NU JOCA";
+      bestOverall.reason = `Cea mai safe selecție găsită acum, dar sub pragul recomandat de ${MIN_SAFE_SCORE}/100.`;
+      return res.status(200).json({tip:clean(bestOverall),report,fallback:true});
+    }
+
+    return res.status(200).json({tip:null,report,fallback:true});
   }catch(e){
     return res.status(500).json({
       error:"Nu am putut citi datele multi-piețe.",
