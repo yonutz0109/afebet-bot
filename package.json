@@ -1,6 +1,6 @@
 {
-  "name": "safebet-bot-api-football",
-  "version": "3.0.0",
+  "name": "safebet-bot-multi-markets",
+  "version": "3.1.0",
   "type": "module",
   "scripts": {
     "build": "mkdir -p dist && cp index.html dist/index.html && cp manifest.json dist/manifest.json && cp sw.js dist/sw.js && cp icon.svg dist/icon.svg"
