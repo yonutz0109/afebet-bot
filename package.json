@@ -1,6 +1,6 @@
 {
   "name": "afebet-bot",
-  "version": "6.4.0",
+  "version": "6.5.0",
   "type": "module",
   "scripts": {
     "build": "mkdir -p dist && cp index.html dist/index.html && cp manifest.json dist/manifest.json && cp sw.js dist/sw.js && cp icon.svg dist/icon.svg"
