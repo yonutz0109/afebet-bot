@@ -1,31 +1,4 @@
-const ODDS_BASE="https://api.the-odds-api.com/v4";
-const FOOTBALL_API="https://v3.football.api-sports.io";
-const MIN_SAFE_SCORE=75;
-const MARKETS=["h2h","totals","spreads"];
-const MAX_SPORTS_TO_SCAN=14;
 
-function marketLabel(k){return({h2h:"1X2",totals:"Goluri over/under",spreads:"Handicap",live_home:"LIVE 1",live_away:"LIVE 2",live_draw:"LIVE X",live_over15:"LIVE peste 1.5",live_over25:"LIVE peste 2.5",live_next_goal:"LIVE gol următor"}[k]||k||"necunoscută")}
-function category(k){if(k==="h2h")return"h2h";if((k||"").includes("total"))return"totals";if((k||"").includes("spread"))return"spreads";if((k||"").startsWith("live_"))return"live";return"other"}
-function baseScore(odd,market){let s=Math.round((1/Number(odd))*100);if(market==="h2h")s-=4;if((market||"").includes("total"))s-=1;if((market||"").includes("spread"))s-=3;if((market||"").startsWith("live_"))s-=2;if(odd>=1.12&&odd<=1.45)s+=8;if(odd>1.65)s-=20;if(odd>1.90)s-=30;return Math.max(0,Math.min(95,s))}
-function pickLabel(outcome,market,home,away){let n=outcome?.name||"";let p=outcome?.point!=null?` ${outcome.point}`:"";if(market==="h2h"){if(n===home)return"1 - câștigă gazdele";if(n===away)return"2 - câștigă oaspeții";if(n==="Draw")return"X - egal"}if((market||"").includes("total"))return`${n}${p} goluri`;if((market||"").includes("spread"))return`${n} handicap ${p}`;return`${n}${p}`.trim()||"Selecție necunoscută"}
-function roDate(iso){return iso?new Date(iso).toLocaleString("ro-RO",{timeZone:"Europe/Bucharest"}):""}
-function addTop(list,c){list.push(c);list.sort((a,b)=>(b.safeScore||0)-(a.safeScore||0));if(list.length>5)list.pop()}
-function clean(c){if(!c)return c;const x={...c};delete x.rawScore;return x}
-function timeInfo(iso){const start=iso?new Date(iso).getTime():0,now=Date.now();const diffMin=(start-now)/60000;if(start&&diffMin<=0&&diffMin>=-180)return{status:"LIVE ACUM",boost:3,key:"live"};if(start&&diffMin>0&&diffMin<=120)return{status:"ÎNCEPE CURÂND",boost:2,key:"soon"};return{status:"PRE-MATCH",boost:0,key:"prematch"}}
-
-async function oddsFetch(url){const r=await fetch(url,{cache:"no-store"});let data=null;try{data=await r.json()}catch(e){}return{ok:r.ok,status:r.status,data}}
-async function getSoccerSports(key){const url=`${ODDS_BASE}/sports/?apiKey=${key}`;const r=await oddsFetch(url);if(!r.ok||!Array.isArray(r.data))return["soccer"];const sports=r.data.filter(s=>String(s.key||"").startsWith("soccer_")&&s.active!==false);const priority=["soccer","soccer_fifa_world_cup","soccer_uefa_european_championship","soccer_conmebol_copa_america","soccer_brazil_campeonato","soccer_brazil_serie_b","soccer_japan_j_league","soccer_japan_j_league_2","soccer_norway_eliteserien","soccer_sweden_allsvenskan","soccer_korea_kleague1","soccer_usa_mls","soccer_china_superleague","soccer_argentina_primera_division"];const keys=[...new Set(["soccer",...priority,...sports.map(s=>s.key)])];return keys.slice(0,MAX_SPORTS_TO_SCAN)}
-async function getOddsForSport(sport,key){const url=`${ODDS_BASE}/sports/${sport}/odds?apiKey=${key}&regions=eu&markets=${MARKETS.join(",")}&oddsFormat=decimal&dateFormat=iso`;const r=await oddsFetch(url);return r.ok&&Array.isArray(r.data)?r.data:[]}
-
-async function footballFetch(path,key){const r=await fetch(`${FOOTBALL_API}${path}`,{headers:{"x-apisports-key":key}});if(!r.ok)return null;return await r.json()}
-const teamCache=new Map(),statsCache=new Map();
-
-async function findTeamId(name,key){if(teamCache.has(name))return teamCache.get(name);const data=await footballFetch(`/teams?search=${encodeURIComponent(name)}`,key);const id=data?.response?.[0]?.team?.id||null;teamCache.set(name,id);return id}
-function formString(fixtures,teamId){let out=[];for(const f of fixtures||[]){const h=f.teams?.home?.id===teamId,a=f.teams?.away?.id===teamId;if(!h&&!a)continue;const hg=f.goals?.home,ag=f.goals?.away;if(hg==null||ag==null)continue;const gf=h?hg:ag,ga=h?ag:hg;out.push(gf>ga?"W":gf===ga?"D":"L");if(out.length>=5)break}return out.join("")||"n/a"}
-function formPoints(form){return[...(form||"")].reduce((s,x)=>s+(x==="W"?3:x==="D"?1:0),0)}
-
-async function getFootballStats(home,away,key){
- if(!key)return{boost:0,note:"API_FOOTBALL_KEY lipsește. Folosesc doar cotele.",homeForm:"n/a",awayForm:"n/a",h2hCount:0};
  const cacheKey=home+"|"+away;
  if(statsCache.has(cacheKey))return statsCache.get(cacheKey);
  try{
