@@ -403,7 +403,9 @@ function normalizeSourcesForUi(sources) {
         <b>Scanare:</b> ${report.scannedAt || "-"}<br>
         <b>Meciuri:</b> ${report.eventsChecked ?? 0} &nbsp;
         <b>Opțiuni:</b> ${report.outcomesChecked ?? 0}<br>
-        <b>Surse:</b> ${sources.length ? sources.join(", ") : "-"}
+        <b>Surse:</b> ${sources.length ? sources.join(", ") : "-"}<br>
+        ${report.sourcesDetail ? `<span style="font-size:11px;color:#64748b">OddsAPI: ${report.sourcesDetail.oddsApi||0} · OpenLiga: ${report.sourcesDetail.openLiga||0} · API-Football: ${report.sourcesDetail.apiFootball||0} meciuri</span>` : ""}
+        ${report.liveFixtures ? `<span style="color:#f59e0b;font-size:12px"> · 🔴 ${report.liveFixtures} live</span>` : ""}
       </div>
     `;
 
