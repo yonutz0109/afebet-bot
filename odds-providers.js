@@ -219,4 +219,4 @@ async function getClubElo(home, away) {
   } catch (e) { const v={eloBoost:0,homeElo:null,awayElo:null,note:"ClubELO eroare."}; eloCache.set(ck,v); return v; }
 }
 
-module.exports = { getAllOddsEvents, getFootyStats, getClubElo };
+export { getAllOddsEvents, getFootyStats, getClubElo };

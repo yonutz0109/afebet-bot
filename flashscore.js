@@ -126,4 +126,4 @@ async function getFlashscoreContext(home, away){
   }
 }
 
-module.exports = { getFlashscoreContext };
+export { getFlashscoreContext };
