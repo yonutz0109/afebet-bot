@@ -1,9 +1,10 @@
-/**
- * odds.js — endpoint legacy păstrat pentru compatibilitate
- * Redirecționează spre scan.js
- */
-const scanHandler = require("./scan.js");
+import { getAllOddsEvents } from "./odds-providers.js";
 
-module.exports = async function handler(req, res) {
-  return scanHandler(req, res);
-};
+export default async function handler(req, res) {
+  try {
+    const data = await getAllOddsEvents(process.env.ODDS_API_KEY, process.env.API_FOOTBALL_KEY);
+    return res.status(200).json(data);
+  } catch (e) {
+    return res.status(500).json({ error: "Nu am putut citi odds.", detail: e?.message || String(e) });
+  }
+}
