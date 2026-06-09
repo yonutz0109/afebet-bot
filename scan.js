@@ -1,6 +1,7 @@
 /**
- * scan.js — SafeBet Bot v7.3.7 Stable
+ * scan.js — SafeBet Bot v7.3 Stable
  * ES Module pentru Vercel.
+ * Surse: odds-providers.js + API-Football live + Flashscore opțional.
  */
 
 import { getAllOddsEvents, getFootyStats, getClubElo } from "./odds-providers.js";
@@ -59,7 +60,6 @@ function pickLabel(outcome, market, home, away) {
   if ((market || "").includes("total")) return `${n}${p} goluri`;
   if ((market || "").includes("spread")) return `${n} handicap${p}`;
   if (market === "btts") return n === "Yes" ? "Da - ambele marchează" : "Nu - cel puțin una nu marchează";
-
   return `${n}${p}`.trim() || "Selecție necunoscută";
 }
 
@@ -92,13 +92,11 @@ function timeInfo(iso) {
 
 async function footballFetch(path, key) {
   if (!key) return null;
-
   try {
     const r = await fetch(`${FOOTBALL_API}${path}`, {
       headers: { "x-apisports-key": key },
       cache: "no-store"
     });
-
     if (!r.ok) return null;
     return await r.json().catch(() => null);
   } catch {
@@ -364,7 +362,7 @@ export default async function handler(req, res) {
       getLiveFootballCandidates(footballKey)
     ]);
 
-    const eventsChecked = events.length;
+    let eventsChecked = events.length;
     let outcomesChecked = 0;
     let bestSafe = null;
     let bestOverall = null;
