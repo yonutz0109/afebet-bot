@@ -86,7 +86,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
 </head>
 <body>
 
-<h1>⚽ SafeBet Bot <span class="badge">v7.4.1 Clean</span></h1>
+<h1>⚽ SafeBet Bot <span class="badge">v7.5.2 Clean.1 Clean.1 Clean</span></h1>
 
 <div id="live-bar">
   <span class="live-dot"></span>
@@ -169,9 +169,8 @@ function scoreBarHtml(score) {
 function scoreValClass(n) { return n>=78?"big":n>=64?"med":"low"; }
 
 function sourcesBadges(sources) {
-  if (sources && !Array.isArray(sources)) sources = [sources];
   if (!sources?.length) return "";
-  return sources.map(s => {
+  return normalizeSourcesForUi(sources).map(s => {
     const warn = s.includes("⚠️") || s.includes("nicio");
     return `<span class="src ${warn?"warn-src":"ok-src"}">${s}</span>`;
   }).join("");
@@ -256,7 +255,7 @@ async function doScan() {
   document.getElementById("recommendation").innerHTML = "";
 
   try {
-    const r = await fetch("/api/scan?t=" + Date.now());
+    const r = await fetch("/api/scan?t=" + Date.now();
     const data = await r.json();
 
     if (!r.ok) {
@@ -351,7 +350,7 @@ async function clearHistory() {
 async function exportHistory() {
   const items = await dbAll().catch(()=>[]);
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(items,null,2)],{type:"application/json"}));
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(items,null,2)],{type:"application/json"});
   a.download = "safebet-history.json";
   a.click();
 }
@@ -359,6 +358,142 @@ async function exportHistory() {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 renderHistory();
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{});
+
+function normalizeSourcesForUi(sources) {
+  if (Array.isArray(sources)) return sources;
+  if (typeof sources === "string" && sources.trim()) return [sources];
+  if (sources && typeof sources === "object") {
+    if (Array.isArray(sources.sources)) return sources.sources;
+    if (typeof sources.sourceUsed === "string") return [sources.sourceUsed];
+  }
+  return [];
+}
+
 </script>
+
+<script>
+(function(){
+  function $(id){ return document.getElementById(id); }
+
+  function normalizeSourcesForUi(sources) {
+    if (Array.isArray(sources)) return sources;
+    if (typeof sources === "string" && sources.trim()) return [sources];
+    if (sources && typeof sources === "object") {
+      if (Array.isArray(sources.sources)) return sources.sources;
+      if (typeof sources.sourceUsed === "string") return [sources.sourceUsed];
+    }
+    return [];
+  }
+
+  function findMainBox(){
+    return document.querySelector(".card") || document.querySelector("main") || document.body;
+  }
+
+  function renderSafeBet(data){
+    const box = findMainBox();
+    const tip = data && data.tip ? data.tip : null;
+    const report = data && data.report ? data.report : {};
+    const accepted = Boolean(data && data.accepted);
+    const sources = normalizeSourcesForUi(report.sourceUsed || data.sourceUsed || report.sources);
+
+    let html = `
+      <h2>Cea mai sigură selecție</h2>
+      <p style="color:${accepted ? '#b8f7c6' : '#ffd28a'}">${data?.message || "Scanare finalizată."}</p>
+      <div class="mini">
+        <b>Scanare:</b> ${report.scannedAt || "-"}<br>
+        <b>Meciuri:</b> ${report.eventsChecked ?? 0} &nbsp;
+        <b>Opțiuni:</b> ${report.outcomesChecked ?? 0}<br>
+        <b>Surse:</b> ${sources.length ? sources.join(", ") : "-"}
+      </div>
+    `;
+
+    if (tip) {
+      html += `
+        <div class="result">
+          <p style="opacity:.75">Recomandare</p>
+          <h3>${tip.match || "-"}</h3>
+          <p><b>${tip.pick || "-"}</b></p>
+          <p>
+            Piață: ${tip.marketLabel || tip.marketKey || "-"} &nbsp;
+            Cotă: ${tip.odd || "-"}
+          </p>
+          <p>
+            Safe Score: ${tip.safeScore ?? "-"} / 100 &nbsp;
+            ${tip.timeStatus || ""}
+          </p>
+          <p>Bookmaker: ${tip.bookmaker || "-"}</p>
+          <p>Start: ${tip.startTime || "-"}</p>
+          <h3>${tip.verdict || (accepted ? "JOACĂ" : "CEL MAI BUN GĂSIT")}</h3>
+          <p>${tip.reason || ""}</p>
+        </div>
+      `;
+    } else {
+      html += `<p>Nu am găsit selecție acum.</p>`;
+    }
+
+    const oldTop = report.topOverall || [];
+    if (oldTop.length) {
+      html += `<div class="result"><h3>Top selecții</h3>`;
+      html += oldTop.slice(0,5).map(x => `
+        <hr>
+        <p><b>${x.match || "-"}</b><br>${x.pick || "-"}</p>
+        <p>Piață: ${x.marketLabel || x.marketKey || "-"} &nbsp; Cotă: ${x.odd || "-"}</p>
+        <p>Safe Score: ${x.safeScore ?? "-"} / 100 &nbsp; ${x.bookmaker || ""}</p>
+      `).join("");
+      html += `</div>`;
+    }
+
+    box.innerHTML = html;
+  }
+
+  async function runSafeBetScan(){
+    const box = findMainBox();
+    const old = box.innerHTML;
+    box.innerHTML = `<h2>Cea mai sigură selecție</h2><p>🔎 Scanez...</p>`;
+
+    try {
+      const r = await fetch("/api/scan?ts=" + Date.now(), { cache: "no-store" });
+      const text = await r.text();
+      let data;
+      try { data = JSON.parse(text); } catch(e) {
+        throw new Error("Răspuns API invalid: " + text.slice(0,180));
+      }
+      if (!r.ok) throw new Error(data.detail || data.error || "API error " + r.status);
+      renderSafeBet(data);
+    } catch(e) {
+      box.innerHTML = old;
+      const target = findMainBox();
+      target.innerHTML = `
+        <h2>Cea mai sigură selecție</h2>
+        <p style="color:#ffaaa5">❌ Eroare de rețea: ${String(e.message || e)}</p>
+        <button id="scanBtn">🔍 Scanează</button>
+        <button id="liveBtn">📡 Live Auto</button>
+        <button id="skipBtn">⏭️ Sari</button>
+        <button id="winBtn">✅ Câștigat</button>
+        <button id="loseBtn">❌ Pierdut</button>
+      `;
+      attachSafeBetButtons();
+    }
+  }
+
+  function attachSafeBetButtons(){
+    const buttons = Array.from(document.querySelectorAll("button"));
+    for (const b of buttons) {
+      const txt = (b.textContent || "").toLowerCase();
+      if (txt.includes("scaneaz") || txt.includes("scan")) {
+        b.onclick = function(ev){ ev.preventDefault(); runSafeBetScan(); };
+      }
+      if (txt.includes("live")) {
+        b.onclick = function(ev){ ev.preventDefault(); runSafeBetScan(); };
+      }
+    }
+  }
+
+  window.runSafeBetScan = runSafeBetScan;
+  document.addEventListener("DOMContentLoaded", attachSafeBetButtons);
+  setTimeout(attachSafeBetButtons, 500);
+})();
+</script>
+
 </body>
 </html>
