@@ -1,7 +1,8 @@
 const ODDS_BASE = "https://api.the-odds-api.com/v4";
 
-const MARKETS = ["h2h", "totals", "spreads", "btts"];
-const MAX_SPORTS_TO_SCAN = 14;
+const MARKETS_PRIMARY = ["h2h", "totals", "spreads"];
+const MARKETS_FALLBACK = ["h2h"];
+const MAX_SPORTS_TO_SCAN = 20;
 
 async function safeJsonFetch(url, options = {}) {
   try {
@@ -14,18 +15,17 @@ async function safeJsonFetch(url, options = {}) {
 }
 
 async function getSoccerSports(key) {
-  if (!key) return ["soccer"];
+  if (!key) return [];
 
   const r = await safeJsonFetch(`${ODDS_BASE}/sports/?apiKey=${key}`);
 
-  if (!r.ok || !Array.isArray(r.data)) return ["soccer"];
+  if (!r.ok || !Array.isArray(r.data)) return [];
 
-  const sports = r.data.filter(
-    s => String(s.key || "").startsWith("soccer_") && s.active !== false
-  );
+  const sports = r.data
+    .filter(s => String(s.key || "").startsWith("soccer_") && s.active !== false)
+    .map(s => s.key);
 
   const priority = [
-    "soccer",
     "soccer_fifa_world_cup",
     "soccer_uefa_european_championship",
     "soccer_conmebol_copa_america",
@@ -41,13 +41,11 @@ async function getSoccerSports(key) {
     "soccer_argentina_primera_division"
   ];
 
-  return [...new Set(["soccer", ...priority, ...sports.map(s => s.key)])].slice(0, MAX_SPORTS_TO_SCAN);
+  return [...new Set([...priority, ...sports])].slice(0, MAX_SPORTS_TO_SCAN);
 }
 
-async function getOddsForSport(sport, key) {
-  if (!key) return [];
-
-  const url = `${ODDS_BASE}/sports/${sport}/odds?apiKey=${key}&regions=eu&markets=${MARKETS.join(",")}&oddsFormat=decimal&dateFormat=iso`;
+async function getOddsForSport(sport, key, markets) {
+  const url = `${ODDS_BASE}/sports/${sport}/odds?apiKey=${key}&regions=eu&markets=${markets.join(",")}&oddsFormat=decimal&dateFormat=iso`;
 
   const r = await safeJsonFetch(url);
 
@@ -61,12 +59,24 @@ async function getOddsForSport(sport, key) {
 }
 
 export async function getAllOddsEvents(oddsKey, footballKey) {
-  const sports = await getSoccerSports(oddsKey);
+  if (!oddsKey) {
+    return {
+      events: [],
+      sourceUsed: "none",
+      oddsApiWorking: false
+    };
+  }
 
+  const sports = await getSoccerSports(oddsKey);
   let events = [];
 
   for (const sport of sports) {
-    const rows = await getOddsForSport(sport, oddsKey);
+    let rows = await getOddsForSport(sport, oddsKey, MARKETS_PRIMARY);
+
+    if (!rows.length) {
+      rows = await getOddsForSport(sport, oddsKey, MARKETS_FALLBACK);
+    }
+
     events.push(...rows);
   }
 
@@ -87,16 +97,9 @@ export async function getAllOddsEvents(oddsKey, footballKey) {
 }
 
 export async function getFootyStats(home, away, key) {
-  if (!key) {
-    return {
-      xgBoost: 0,
-      note: "FootyStats dezactivat"
-    };
-  }
-
   return {
     xgBoost: 0,
-    note: "FootyStats activ, dar fără mapping sigur momentan"
+    note: key ? "FootyStats pregătit, dar dezactivat pentru stabilitate" : "FootyStats dezactivat"
   };
 }
 
