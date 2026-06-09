@@ -1,48 +1,44 @@
-# SafeBet Bot v7.0
+# SafeBet Bot v7.1
 
-Bot de pariuri cu fallback automat între mai multe surse de cote, scoring compus și urmărire live.
+Bot de analiză pariuri sportive cu fallback automat între surse, scoring compus și urmărire live.
 
-## 🚀 Deploy pe Vercel
+## 🚀 Deploy pe Vercel (pași simpli)
 
-1. Fork/upload repo pe GitHub
-2. Conectează în Vercel → New Project
-3. Adaugă variabilele de mediu (vezi mai jos)
-4. Deploy
+1. **Urcă pe GitHub** — repo nou, uploadezi fișierele
+2. **Vercel** → New Project → Import repo
+3. **Adaugă variabilele de mediu** (Settings → Environment Variables):
 
-## 🔑 Environment Variables (Vercel → Settings → Environment Variables)
-
-| Variabilă | Obligatorie | Descriere |
+| Variabilă | Obligatorie | Unde o obții |
 |---|---|---|
-| `ODDS_API_KEY` | ✅ Recomandat | [the-odds-api.com](https://the-odds-api.com) — Plan gratuit: 500 req/lună |
-| `API_FOOTBALL_KEY` | ✅ Recomandat | [api-sports.io](https://api-sports.io) — Plan gratuit: 100 req/zi |
-| `FOOTYSTATS_KEY` | ⚠️ Opțional | [footystats.org](https://footystats.org/api) — xG + BTTS stats |
-| `FLASHSCORE_API_URL` | ⚠️ Opțional | URL custom Flashscore (vezi FLASH_SCORE_SETUP.md) |
+| `ODDS_API_KEY` | ✅ DA | [the-odds-api.com](https://the-odds-api.com) — 500 req/lună gratuit |
+| `API_FOOTBALL_KEY` | ✅ DA | [api-sports.io](https://api-sports.io) — 100 req/zi gratuit |
+| `FOOTYSTATS_KEY` | ⚠️ Opțional | [footystats.org/api](https://footystats.org/api) — xG + BTTS |
+| `FLASHSCORE_API_URL` | ⚠️ Opțional | URL propriu (vezi FLASH_SCORE_SETUP.md) |
 
-## 🔄 Fallback automat cote
+4. **Redeploy** după adăugarea variabilelor
 
-Sistemul încearcă în paralel:
-1. **The Odds API** — cote reale de la bookmakers europeni
-2. **API-Football Odds** — cote alternative (dacă Odds API e epuizat)
-3. **OpenLigaDB** — date structurale Bundesliga (fără cheie, fără cote reale)
+## 🔄 Cum funcționează fallback-ul
 
-Dacă toate eșuează → raportează eroare clară în UI.
+Toate sursele pornesc **în paralel** la fiecare scanare:
+```
+The Odds API ──┐
+API-Football ──┼──► combinate + deduplicate → scoring → recomandare
+OpenLigaDB  ──┘
+```
+Dacă Odds API epuizează creditele → continuă din API-Football + OpenLigaDB, **fără întrerupere**.
 
-## 📊 Scoring compus (max 95/100)
+## 📊 Scoring (max 95/100)
 
-| Sursă | Bonus max |
+| Factor | Bonus max |
 |---|---|
 | Probabilitate implicită cotă | baza |
-| API-Football (formă, H2H) | +4 |
-| Flashscore (formă, lineup) | +5 |
-| FootyStats xG | +3 |
+| Zona cotă 1.15–1.35 | +10 |
+| Formă echipe (API-Football) | +6 |
+| Formă Flashscore | +5 |
+| Expected Goals xG (FootyStats) | +3 |
 | Club ELO difference | +3 |
-| Timp până la meci (live/soon) | +3 |
+| Timp (live/curând/azi) | +4 |
 
 ## ⚡ Live Auto
 
-Butonul **📡 Live Auto** activează refresh la fiecare 20 secunde — ideal pentru meciuri live.
-
-## 📋 Istoric
-
-Istoricul pariurilor este salvat în **IndexedDB** (nu se pierde la curățare cache simplu).
-Export JSON disponibil din UI.
+Refresh automat la 22 secunde — meciurile live sunt prioritizate în scoring.

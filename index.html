@@ -1,1 +1,363 @@
-<!DOCTYPE html><html lang="ro"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0f172a"><link rel="manifest" href="/manifest.json"><title>SafeBet Bot</title><style>*{box-sizing:border-box}body{font-family:Arial,sans-serif;background:#0f172a;color:white;margin:0;padding:22px}h1{font-size:34px;margin:38px 0 28px}.card{background:#1e293b;padding:22px;border-radius:22px;margin-bottom:20px}.label{color:#94a3b8;font-size:14px;margin-bottom:6px}.value{font-size:20px;margin-bottom:14px}button{background:#22c55e;border:none;padding:14px 18px;border-radius:13px;color:white;font-size:17px;font-weight:700;cursor:pointer;margin:6px 6px 6px 0}button.secondary{background:#334155}button.danger{background:#ef4444}.small{color:#94a3b8;font-size:13px;line-height:1.45}.tip-title{font-size:23px;font-weight:800;margin-bottom:15px}.pill{display:inline-block;padding:7px 10px;border-radius:999px;background:#0f172a;color:#cbd5e1;margin:4px 4px 8px 0;font-size:13px}.live{background:#7f1d1d;color:#fecaca}.soon{background:#78350f;color:#fde68a}.prematch{background:#0f172a;color:#cbd5e1}.error{color:#fecaca}.success{color:#bbf7d0}.warning{color:#fde68a}.report-box{border:1px solid #334155;border-radius:16px;padding:14px;margin-top:12px;background:#0f172a}.top-item{border-top:1px solid #334155;padding:12px 0}.good{color:#bbf7d0}.medium{color:#fde68a}</style></head><body><h1>⚽ SafeBet Bot</h1><div class="card"><div class="tip-title">Cea mai safe selecție v6.7 + Flashscore</div><div id="status" class="small">Apasă „Scanează”.</div><div id="recommendation" style="margin-top:14px"></div><button onclick="scanRealMatches()">Scanează</button><button class="secondary" onclick="skipTip()">Sari peste</button><button onclick="markWin()">Câștigat</button><button class="danger" onclick="markLoss()">Pierdut</button></div><div class="card"><div class="tip-title">Istoric</div><div id="history" class="small">Nu ai istoric încă.</div></div><script>let currentTip=null,history=JSON.parse(localStorage.getItem("history")||"[]");function renderHistory(){let el=document.getElementById("history");if(history.length===0){el.innerText="Nu ai istoric încă.";return}el.innerHTML=history.slice().reverse().map(h=>`<div class="top-item"><b>${h.result}</b> · ${h.match}<br>${h.pick} · ${h.marketLabel} · Cotă ${h.odd}</div>`).join("")}function statusClass(s){return s==="LIVE ACUM"?"live":s==="ÎNCEPE CURÂND"?"soon":"prematch"}function statsBox(s){if(!s)return"";return `<div class="report-box"><div class="label">Analiză API-FOOTBALL</div><span class="pill">Bonus: ${s.boost>=0?"+":""}${s.boost||0}</span><span class="pill">Formă gazde: ${s.homeForm||"n/a"}</span><span class="pill">Formă oaspeți: ${s.awayForm||"n/a"}</span><span class="pill">H2H: ${s.h2hCount??"n/a"}</span><div class="small" style="margin-top:10px">${s.note||""}</div></div>`}function flashBox(s){if(!s)return"";return `<div class="report-box"><div class="label">Context Flashscore</div><span class="pill">Status: ${s.available?"activ":"opțional"}</span><span class="pill">Bonus: ${s.boost>=0?"+":""}${s.boost||0}</span><span class="pill">Formă gazde: ${s.homeForm||"n/a"}</span><span class="pill">Formă oaspeți: ${s.awayForm||"n/a"}</span><span class="pill">H2H: ${s.h2hCount??"n/a"}</span><span class="pill">Lineup: ${s.hasLineups?"da":"n/a"}</span><div class="small" style="margin-top:10px">${s.note||""}</div></div>`}function selectionCard(t,title){let cls=t.verdict==="JOACĂ"?"good":"medium";return `<div class="report-box"><div class="label">${title}</div><div class="value">${t.match||"Meci necunoscut"}</div><div class="label">Selecție</div><div class="value">${t.pick||"Selecție necunoscută"}</div><span class="pill ${statusClass(t.timeStatus)}">${t.timeStatus||"PRE-MATCH"}</span><span class="pill">Piață: ${t.marketLabel||"necunoscută"}</span><span class="pill">Cotă: ${t.odd||"n/a"}</span><span class="pill">Safe Score: ${t.safeScore??"n/a"}/100</span><span class="pill">Prag: 75/100</span><span class="pill">Bookmaker: ${t.bookmaker||"n/a"}</span><span class="pill">Start: ${t.startTime||"necunoscut"}</span><div style="margin-top:12px"><div class="label">Verdict</div><div class="value ${cls}">${t.verdict||"CEL MAI BUN GĂSIT"}</div><div class="small">${t.reason||t.rejectReason||""}</div></div>${statsBox(t.footballStats)}${flashBox(t.flashscoreStats)}</div>`}function marketsBox(r){let m=r.marketStats||{},ts=r.timeStats||{};return `<div class="report-box"><div class="label">Piețe găsite</div><span class="pill">1X2: ${m.h2h||0}</span><span class="pill">Goluri: ${m.totals||0}</span><span class="pill">Handicap: ${m.spreads||0}</span><span class="pill">Altele: ${m.other||0}</span><div style="margin-top:10px"><span class="pill live">LIVE: ${ts.live||0}</span><span class="pill soon">Curând: ${ts.soon||0}</span><span class="pill prematch">Pre-match: ${ts.prematch||0}</span></div></div>`}function topBox(list){if(!list||!list.length)return"";return `<div class="report-box"><div class="label">Top 5 selecții</div>${list.map(x=>`<div class="top-item"><b>${x.match}</b><br>${x.pick}<br><span class="pill ${statusClass(x.timeStatus)}">${x.timeStatus||"PRE-MATCH"}</span><span class="pill">Piață: ${x.marketLabel}</span><span class="pill">Cotă: ${x.odd}</span><span class="pill">Safe Score: ${x.safeScore}/100</span><span class="pill">${x.bookmaker}</span></div>`).join("")}</div>`}function renderResult(data){let r=data.report||{},t=data.tip||r.bestOverall||r.firstAvailable;currentTip=data.accepted?t:null;document.getElementById("recommendation").innerHTML=`<div class="report-box"><div class="label">Raport scanare</div><span class="pill">Meciuri: ${r.eventsChecked||0}</span><span class="pill">Opțiuni: ${r.outcomesChecked||0}</span><span class="pill">Scanare: ${r.scannedAt||"-"}</span><span class="pill">Flashscore: ${r.flashscoreEnabled?"activ":"opțional"}</span><div class="small" style="margin-top:10px">${data.message||""}</div></div>${marketsBox(r)}${t?selectionCard(t,data.accepted?"Recomandare acceptată":"Cea mai bună selecție găsită"):""}${topBox(r.topOverall)}`}async function scanRealMatches(){let st=document.getElementById("status");st.innerHTML="Scanez live real + mai multe ligi + API-FOOTBALL + Flashscore opțional...";document.getElementById("recommendation").innerHTML="";try{let res=await fetch("/api/scan?ts="+Date.now());let data=await res.json();if(!res.ok){st.innerHTML=`<span class="error">${data.error||"Eroare API"}</span>`;document.getElementById("recommendation").innerHTML=`<div class="small">${data.help||""}</div>`;return}st.innerHTML=data.accepted?`<span class="success">Am găsit selecție peste prag.</span>`:`<span class="warning">Nu recomand pariu, dar afișez cea mai bună selecție găsită.</span>`;renderResult(data)}catch(e){st.innerHTML=`<span class="error">Nu pot conecta aplicația la API acum.</span>`}}function addHistory(r){if(!currentTip)return;history.push({result:r,match:currentTip.match,pick:currentTip.pick,marketLabel:currentTip.marketLabel,odd:currentTip.odd,time:new Date().toISOString()});localStorage.setItem("history",JSON.stringify(history));renderHistory()}function markWin(){addHistory("Câștigat")}function markLoss(){addHistory("Pierdut")}function skipTip(){currentTip=null;document.getElementById("recommendation").innerHTML="";document.getElementById("status").innerText="Recomandarea a fost sărită."}renderHistory();if("serviceWorker"in navigator){navigator.serviceWorker.register("/sw.js").catch(()=>{})}</script></body></html>
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0a0f1e">
+<link rel="manifest" href="/manifest.json">
+<title>SafeBet Bot</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#0a0f1e;color:#e2e8f0;padding:14px;min-height:100vh}
+h1{font-size:24px;font-weight:800;margin:16px 0 18px;display:flex;align-items:center;gap:8px;color:#fff}
+.badge{font-size:11px;color:#64748b;background:#1e293b;padding:3px 9px;border-radius:999px;font-weight:500}
+.card{background:#111827;border:1px solid #1e293b;padding:16px;border-radius:16px;margin-bottom:14px}
+.card-title{font-size:16px;font-weight:700;margin-bottom:12px;color:#f8fafc}
+.btn-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+button{border:none;padding:11px 16px;border-radius:11px;color:white;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;letter-spacing:.3px}
+button:hover{filter:brightness(1.15)}
+button:disabled{opacity:.35;cursor:not-allowed}
+.btn-scan{background:linear-gradient(135deg,#3b82f6,#6366f1);flex:1;font-size:15px}
+.btn-live{background:#1e293b;border:1px solid #334155;flex:1}
+.btn-live.active{background:#7f1d1d;border-color:#ef4444;color:#fca5a5}
+.btn-gray{background:#1e293b;border:1px solid #334155}
+.btn-win{background:#166534}
+.btn-loss{background:#7f1d1d}
+.status-line{font-size:13px;min-height:20px;margin-bottom:4px}
+.ok{color:#86efac}.warn{color:#fde68a}.err{color:#fca5a5}.info{color:#93c5fd}
+/* Tip card */
+.tip-wrap{margin-top:12px}
+.tip-match{font-size:20px;font-weight:800;color:#fff;margin-bottom:10px;line-height:1.2}
+.tip-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.tip-cell{background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:10px 12px}
+.tip-cell-label{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.tip-cell-val{font-size:15px;font-weight:700;color:#f1f5f9}
+.tip-cell-val.big{font-size:22px;color:#22c55e}
+.tip-cell-val.med{font-size:22px;color:#fbbf24}
+.tip-cell-val.low{font-size:22px;color:#f87171}
+/* Score bar */
+.score-bar-wrap{margin:10px 0}
+.score-bar-bg{background:#1e293b;border-radius:999px;height:8px;overflow:hidden}
+.score-bar-fill{height:100%;border-radius:999px;transition:width .5s ease}
+.score-bar-labels{display:flex;justify-content:space-between;font-size:10px;color:#475569;margin-top:3px}
+/* Pills */
+.pill{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;margin:2px;border:1px solid transparent}
+.pill-live{background:#450a0a;color:#fca5a5;border-color:#7f1d1d}
+.pill-soon{background:#431407;color:#fed7aa;border-color:#9a3412}
+.pill-today{background:#1e1b4b;color:#a5b4fc;border-color:#3730a3}
+.pill-prematch{background:#1e293b;color:#94a3b8;border-color:#334155}
+.pill-green{background:#052e16;color:#86efac;border-color:#166534}
+.pill-yellow{background:#422006;color:#fde68a;border-color:#92400e}
+.pill-blue{background:#0c1a2e;color:#93c5fd;border-color:#1e40af}
+.pill-red{background:#450a0a;color:#fca5a5;border-color:#7f1d1d}
+.pill-gray{background:#1e293b;color:#94a3b8;border-color:#334155}
+/* Source badges */
+.src{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:600;background:#172033;color:#60a5fa;border:1px solid #1e3a5f;margin:2px}
+.src.ok-src{color:#86efac;background:#052e16;border-color:#166534}
+.src.warn-src{color:#fde68a;background:#422006;border-color:#92400e}
+/* Detalii */
+.detail-section{background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:12px;margin-top:10px}
+.detail-title{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.detail-row{font-size:12px;color:#94a3b8;line-height:1.7}
+/* Top list */
+.top-item{padding:10px 0;border-top:1px solid #1e293b}
+.top-item:first-child{border-top:none}
+.top-name{font-size:14px;font-weight:700;color:#e2e8f0;margin-bottom:5px}
+.top-meta{font-size:12px;color:#64748b}
+/* Live pulse */
+.live-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;animation:p 1.2s ease-in-out infinite;margin-right:4px}
+@keyframes p{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}
+#live-bar{display:none;align-items:center;gap:8px;background:#0f2813;border:1px solid #166534;border-radius:10px;padding:8px 14px;margin-bottom:12px;font-size:13px;font-weight:600;color:#86efac}
+#live-bar.show{display:flex}
+#cd{color:#4ade80;font-size:12px}
+/* Countdown timer */
+.progress-ring{width:36px;height:36px}
+/* Stat boxes */
+.stats-mini{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.stat-mini{background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:6px 10px;text-align:center;flex:1;min-width:70px}
+.stat-mini-v{font-size:18px;font-weight:800;color:#f1f5f9}
+.stat-mini-l{font-size:10px;color:#64748b;text-transform:uppercase}
+/* History */
+.hist-item{padding:10px 0;border-top:1px solid #1e293b;font-size:13px}
+.hist-item:first-child{border-top:none}
+.win-tag{color:#86efac;font-weight:700}
+.loss-tag{color:#fca5a5;font-weight:700}
+</style>
+</head>
+<body>
+
+<h1>⚽ SafeBet Bot <span class="badge">v7.1</span></h1>
+
+<div id="live-bar">
+  <span class="live-dot"></span>
+  <span>Live activ</span>
+  <span id="cd"></span>
+</div>
+
+<div class="card">
+  <div class="card-title">Cea mai sigură selecție</div>
+  <div id="status" class="status-line info">Apasă „Scanează" pentru a analiza meciurile.</div>
+  <div id="recommendation"></div>
+  <div class="btn-row">
+    <button class="btn-scan" id="btn-scan" onclick="doScan()">🔍 Scanează</button>
+    <button class="btn-live" id="btn-live" onclick="toggleLive()">📡 Live Auto</button>
+  </div>
+  <div class="btn-row">
+    <button class="btn-gray" onclick="skipTip()">⏭ Sari</button>
+    <button class="btn-win" onclick="markWin()">✅ Câștigat</button>
+    <button class="btn-loss" onclick="markLoss()">❌ Pierdut</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">📋 Istoric</div>
+  <div id="stats-bar" style="margin-bottom:10px"></div>
+  <div id="history" style="font-size:13px;color:#64748b">Nu ai înregistrări încă.</div>
+  <div class="btn-row">
+    <button class="btn-gray" onclick="clearHistory()">🗑 Șterge</button>
+    <button class="btn-gray" onclick="exportHistory()">📥 Export</button>
+  </div>
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+let currentTip = null;
+let liveActive = false;
+let liveTimer = null;
+let cdTimer = null;
+let cdSec = 0;
+const LIVE_SEC = 22;
+
+// ─── IndexedDB ────────────────────────────────────────────────────────────────
+const DB = { name:"safebet7", store:"history", ver:1 };
+let _db = null;
+function openDB() {
+  if (_db) return Promise.resolve(_db);
+  return new Promise((res,rej) => {
+    const r = indexedDB.open(DB.name, DB.ver);
+    r.onupgradeneeded = e => e.target.result.createObjectStore(DB.store,{keyPath:"id",autoIncrement:true});
+    r.onsuccess = e => { _db = e.target.result; res(_db); };
+    r.onerror = () => rej(r.error);
+  });
+}
+async function dbAll() { const d=await openDB(); return new Promise((res,rej)=>{ const r=d.transaction(DB.store,"readonly").objectStore(DB.store).getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>rej(r.error); }); }
+async function dbAdd(item) { const d=await openDB(); return new Promise((res,rej)=>{ const tx=d.transaction(DB.store,"readwrite"); tx.objectStore(DB.store).add(item); tx.oncomplete=res; tx.onerror=()=>rej(tx.error); }); }
+async function dbClear() { const d=await openDB(); return new Promise((res,rej)=>{ const tx=d.transaction(DB.store,"readwrite"); tx.objectStore(DB.store).clear(); tx.oncomplete=res; tx.onerror=()=>rej(tx.error); }); }
+
+// ─── UI helpers ───────────────────────────────────────────────────────────────
+function timePill(s) {
+  if (!s) return "";
+  if (s.includes("LIVE")) return `<span class="pill pill-live">🔴 ${s}</span>`;
+  if (s.includes("CURÂND")) return `<span class="pill pill-soon">⚡ ${s}</span>`;
+  if (s.includes("AZI")) return `<span class="pill pill-today">${s}</span>`;
+  return `<span class="pill pill-prematch">${s}</span>`;
+}
+
+function scoreColor(n) {
+  return n >= 80 ? "#22c55e" : n >= 68 ? "#fbbf24" : "#f87171";
+}
+
+function scoreBarHtml(score) {
+  const pct = Math.min(100, score);
+  const col = scoreColor(score);
+  return `<div class="score-bar-wrap">
+    <div class="score-bar-bg"><div class="score-bar-fill" style="width:${pct}%;background:${col}"></div></div>
+    <div class="score-bar-labels"><span>0</span><span>50</span><span>100</span></div>
+  </div>`;
+}
+
+function scoreValClass(n) { return n>=78?"big":n>=64?"med":"low"; }
+
+function sourcesBadges(sources) {
+  if (!sources?.length) return "";
+  return sources.map(s => {
+    const warn = s.includes("⚠️") || s.includes("nicio");
+    return `<span class="src ${warn?"warn-src":"ok-src"}">${s}</span>`;
+  }).join("");
+}
+
+function renderTip(t, accepted) {
+  if (!t) return "<div class='status-line warn'>Nicio selecție disponibilă momentan.</div>";
+  const scoreV = t.safeScore || 0;
+  const liveExtra = t.live ? `<div class="detail-section"><div class="detail-title">Live info</div><div class="detail-row">Min: <b>${t.live.minute}'</b> · Scor: <b>${t.live.score}</b> · Status: ${t.live.status}</div></div>` : "";
+  const footballD = t.footballStats ? `<div class="detail-section"><div class="detail-title">Formă echipe</div><div class="detail-row">${t.footballStats.note||""}</div></div>` : "";
+  const footyD = t.footyStats?.totalXg ? `<div class="detail-section"><div class="detail-title">Expected Goals (xG)</div><div class="detail-row">${t.footyStats.note||""}</div></div>` : "";
+  const eloD = t.eloStats?.homeElo ? `<div class="detail-section"><div class="detail-title">Club ELO</div><div class="detail-row">${t.eloStats.note||""}</div></div>` : "";
+  const flashD = t.flashscoreStats?.available ? `<div class="detail-section"><div class="detail-title">Flashscore</div><div class="detail-row">${t.flashscoreStats.note||""}</div></div>` : "";
+  return `
+  <div class="tip-wrap">
+    <div class="tip-match">${t.match||"Meci necunoscut"}</div>
+    <div style="margin-bottom:10px">
+      ${timePill(t.timeStatus)}
+      <span class="pill pill-gray">📊 ${t.marketLabel||"piață"}</span>
+      <span class="pill pill-gray">📖 ${t.bookmaker||""}</span>
+      ${t.dataSource ? `<span class="src">${t.dataSource}</span>` : ""}
+    </div>
+    <div class="tip-grid">
+      <div class="tip-cell"><div class="tip-cell-label">Selecție</div><div class="tip-cell-val" style="font-size:14px">${t.pick||"—"}</div></div>
+      <div class="tip-cell"><div class="tip-cell-label">Cotă</div><div class="tip-cell-val big">${t.odd||"n/a"}</div></div>
+      <div class="tip-cell" style="grid-column:1/-1">
+        <div class="tip-cell-label">Scor siguranță</div>
+        <div class="tip-cell-val ${scoreValClass(scoreV)}">${scoreV}/100 ${t.confidence||""}</div>
+        ${scoreBarHtml(scoreV)}
+      </div>
+    </div>
+    <div class="tip-cell" style="margin-bottom:10px;background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:10px 12px">
+      <div class="tip-cell-label">Verdict</div>
+      <div style="font-size:16px;font-weight:800;margin-top:4px">${t.verdict||"?"}</div>
+      <div style="font-size:12px;color:#64748b;margin-top:6px">${t.reason||""}</div>
+    </div>
+    ${liveExtra}${footballD}${footyD}${eloD}${flashD}
+  </div>`;
+}
+
+function renderTopList(list) {
+  if (!list?.length) return "";
+  return `<div class="detail-section" style="margin-top:12px">
+    <div class="detail-title">Top ${list.length} selecții găsite</div>
+    ${list.map((x,i) => `<div class="top-item">
+      <div class="top-name">${i+1}. ${x.match}</div>
+      <div class="top-meta">
+        ${timePill(x.timeStatus)}
+        <span class="pill pill-gray">${x.pick}</span>
+        <span class="pill pill-gray">Cotă: ${x.odd}</span>
+        <span class="pill ${x.safeScore>=78?"pill-green":x.safeScore>=64?"pill-yellow":"pill-red"}">Score: ${x.safeScore}/100</span>
+        ${x.dataSource?`<span class="src">${x.dataSource}</span>`:""}
+      </div>
+    </div>`).join("")}
+  </div>`;
+}
+
+function renderReport(r) {
+  return `<div class="detail-section" style="margin-top:12px">
+    <div class="detail-title">Raport scanare · ${r.scannedAt||"—"}</div>
+    <div class="stats-mini">
+      <div class="stat-mini"><div class="stat-mini-v">${r.eventsChecked||0}</div><div class="stat-mini-l">Meciuri</div></div>
+      <div class="stat-mini"><div class="stat-mini-v">${r.outcomesChecked||0}</div><div class="stat-mini-l">Opțiuni</div></div>
+      <div class="stat-mini"><div class="stat-mini-v">${r.liveFixtures||0}</div><div class="stat-mini-l">Live</div></div>
+      <div class="stat-mini"><div class="stat-mini-v">${r.marketStats?.btts||0}</div><div class="stat-mini-l">BTTS</div></div>
+    </div>
+    <div style="margin-top:10px">${sourcesBadges(r.sourceUsed)}</div>
+    <div style="margin-top:6px;font-size:11px;color:#475569">
+      Odds API: ${r.oddsApiWorking?"✅":"⚠️ fallback"} ·
+      FootyStats: ${r.footystatsEnabled?"✅":"—"} ·
+      Flashscore: ${r.flashscoreEnabled?"✅":"—"}
+    </div>
+  </div>`;
+}
+
+// ─── Scan ─────────────────────────────────────────────────────────────────────
+async function doScan() {
+  const btn = document.getElementById("btn-scan");
+  btn.disabled = true;
+  btn.textContent = "⏳ Scanez...";
+  document.getElementById("status").innerHTML = `<span class="info">Analizez meciurile din toate sursele...</span>`;
+  document.getElementById("recommendation").innerHTML = "";
+
+  try {
+    const r = await fetch("/api/scan?t=" + Date.now());
+    const data = await r.json();
+
+    if (!r.ok) {
+      document.getElementById("status").innerHTML = `<span class="err">❌ ${data.error||"Eroare"} — ${data.help||""}</span>`;
+      btn.disabled = false; btn.textContent = "🔍 Scanează";
+      return;
+    }
+
+    currentTip = data.tip || null;
+    const rep = data.report || {};
+
+    document.getElementById("status").innerHTML = data.accepted
+      ? `<span class="ok">✅ Selecție sigură găsită!</span>`
+      : `<span class="warn">⚠️ ${data.message||"Afișez cea mai bună opțiune."}</span>`;
+
+    document.getElementById("recommendation").innerHTML =
+      renderTip(data.tip, data.accepted) +
+      renderTopList(rep.topOverall) +
+      renderReport(rep);
+
+  } catch (e) {
+    document.getElementById("status").innerHTML = `<span class="err">❌ Eroare de rețea: ${e.message}</span>`;
+  }
+
+  btn.disabled = false;
+  btn.textContent = "🔍 Scanează";
+}
+
+// ─── Live Auto ────────────────────────────────────────────────────────────────
+function toggleLive() {
+  const btn = document.getElementById("btn-live");
+  const bar = document.getElementById("live-bar");
+  if (liveActive) {
+    liveActive = false;
+    clearInterval(liveTimer);
+    clearInterval(cdTimer);
+    btn.textContent = "📡 Live Auto";
+    btn.classList.remove("active");
+    bar.classList.remove("show");
+  } else {
+    liveActive = true;
+    btn.textContent = "⏹ Stop";
+    btn.classList.add("active");
+    bar.classList.add("show");
+    doScan();
+    cdSec = LIVE_SEC;
+    liveTimer = setInterval(() => { doScan(); cdSec = LIVE_SEC; }, LIVE_SEC * 1000);
+    cdTimer = setInterval(() => {
+      cdSec = Math.max(0, cdSec - 1);
+      document.getElementById("cd").textContent = cdSec > 0 ? `· refresh în ${cdSec}s` : "";
+    }, 1000);
+  }
+}
+
+// ─── History ──────────────────────────────────────────────────────────────────
+async function renderHistory() {
+  const items = await dbAll().catch(() => []);
+  const wins = items.filter(x => x.result === "W").length;
+  const losses = items.filter(x => x.result === "L").length;
+  const rate = items.length ? Math.round(wins/items.length*100) : 0;
+
+  document.getElementById("stats-bar").innerHTML = items.length
+    ? `<span class="pill pill-green">✅ ${wins} câștig.</span><span class="pill pill-red">❌ ${losses} piert.</span><span class="pill pill-blue">📊 ${rate}% rată</span>`
+    : "";
+
+  document.getElementById("history").innerHTML = items.length
+    ? items.slice().reverse().map(h => `<div class="hist-item">
+        <span class="${h.result==="W"?"win-tag":"loss-tag"}">${h.result==="W"?"✅ Câștigat":"❌ Pierdut"}</span>
+        · <b>${h.match||"—"}</b><br>
+        <span style="color:#94a3b8">${h.pick||""}</span> · Cotă ${h.odd||"n/a"} · Score ${h.score||"—"}<br>
+        <span style="color:#475569;font-size:11px">${h.time ? new Date(h.time).toLocaleString("ro-RO") : ""}</span>
+      </div>`).join("")
+    : "<span style='color:#475569'>Nu ai înregistrări încă.</span>";
+}
+
+async function addHistory(result) {
+  if (!currentTip) return;
+  await dbAdd({ result, match: currentTip.match, pick: currentTip.pick, odd: currentTip.odd, score: currentTip.safeScore, time: new Date().toISOString() }).catch(()=>{});
+  renderHistory();
+}
+
+function markWin() { addHistory("W"); }
+function markLoss() { addHistory("L"); }
+function skipTip() { currentTip = null; document.getElementById("recommendation").innerHTML = ""; document.getElementById("status").innerHTML = `<span class="info">Scanare sărită.</span>`; }
+
+async function clearHistory() {
+  if (!confirm("Ștergi tot istoricul?")) return;
+  await dbClear().catch(()=>{});
+  renderHistory();
+}
+
+async function exportHistory() {
+  const items = await dbAll().catch(()=>[]);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(items,null,2)],{type:"application/json"}));
+  a.download = "safebet-history.json";
+  a.click();
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+renderHistory();
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{});
+</script>
+</body>
+</html>

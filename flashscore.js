@@ -106,7 +106,7 @@ function extractContext(row){
   return {available:true,boost,homeForm:homeForm||"n/a",awayForm:awayForm||"n/a",h2hCount,hasLineups,liveMinute,injuries,note:parts.length?`Context Flashscore: ${parts.join(", ")}. Bonus: ${boost>=0?"+":""}${boost}.`:"Context Flashscore disponibil. Bonus 0."};
 }
 
-export async function getFlashscoreContext(home, away){
+async function getFlashscoreContext(home, away){
   const base = process.env.FLASHSCORE_API_URL;
   if(!base) return {available:false,boost:0,note:"FLASHSCORE_API_URL lipsește. Flashscore este dezactivat, botul folosește Odds API + API-FOOTBALL."};
   const key = `${home}|${away}`;
@@ -125,3 +125,5 @@ export async function getFlashscoreContext(home, away){
     return cacheSet(key,{available:false,boost:0,note:"Flashscore nu a putut fi citit. Continui fără el."});
   }
 }
+
+module.exports = { getFlashscoreContext };

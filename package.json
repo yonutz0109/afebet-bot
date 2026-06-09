@@ -1,9 +1,8 @@
 {
   "name": "afebet-bot",
-  "version": "6.7.1",
-  "type": "module",
+  "version": "7.1.0",
   "scripts": {
-    "build": "mkdir -p dist && cp index.html dist/index.html && cp manifest.json dist/manifest.json && cp sw.js dist/sw.js && cp icon.svg dist/icon.svg"
+    "build": "echo 'No build needed'"
   },
   "dependencies": {}
 }
