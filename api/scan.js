@@ -4,7 +4,7 @@
  */
 
 import { getAllOddsEvents, getFootyStats, getClubElo } from "./odds-providers.js";
-import { getFlashscoreContext } from "../flashscore.js";
+import { getFlashscoreContext } from "./flashscore.js";
 
 const FOOTBALL_API = "https://v3.football.api-sports.io";
 const MIN_SAFE_SCORE = 75;
