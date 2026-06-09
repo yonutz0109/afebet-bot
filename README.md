@@ -1,4 +1,4 @@
-# SafeBet Bot v7.4.1
+# SafeBet Bot v7.5.1
 
 Bot de analiză pariuri sportive cu fallback automat între surse, scoring compus și urmărire live.
 
