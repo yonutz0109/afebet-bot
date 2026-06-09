@@ -2,7 +2,7 @@
   "name": "afebet-bot",
   "version": "7.3.8",
   "scripts": {
-    "build": "mkdir -p dist && cp index.html dist/index.html && cp -R public/* dist/ 2>/dev/null || true && cp icon.svg dist/icon.svg 2>/dev/null || true"
+    "build": "mkdir -p public_out && cp index.html public_out/index.html && cp icon.svg public_out/icon.svg 2>/dev/null || true && cp -R public/* public_out/ 2>/dev/null || true"
   },
   "dependencies": {},
   "type": "module"
