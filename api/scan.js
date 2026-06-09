@@ -1,3 +1,4 @@
+// SafeBet Bot api/scan.js v7.3.3 final - generated 1781001464
 /**
  * scan.js — SafeBet Bot v7.1
  * CommonJS pentru Vercel Serverless
