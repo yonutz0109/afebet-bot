@@ -150,6 +150,40 @@ function formPoints(form) {
   return [...(form||"")].reduce((s, x) => s + (x==="W"?3:x==="D"?1:0), 0);
 }
 
+
+function rankingBoost(homeForm, awayForm) {
+  const hp = formPoints(homeForm);
+  const ap = formPoints(awayForm);
+  const diff = hp - ap;
+  if (diff >= 10) return 8;
+  if (diff >= 6) return 5;
+  if (diff >= 3) return 2;
+  if (diff <= -10) return -8;
+  if (diff <= -6) return -5;
+  if (diff <= -3) return -2;
+  return 0;
+}
+
+function homeAdvantageBoost() {
+  return 2;
+}
+
+function officialMatchBoost(sportKey, dataSource) {
+  const s = String(sportKey || "").toLowerCase();
+  const d = String(dataSource || "").toLowerCase();
+  if (s.includes("friendly") || s.includes("friendlies") || d.includes("friendly")) return -6;
+  if (s.includes("soccer") || d) return 3;
+  return 0;
+}
+
+function lowOddPenalty(odd) {
+  const n = Number(odd);
+  if (!n || Number.isNaN(n)) return 0;
+  if (n < 1.08) return -10;
+  if (n < 1.12) return -5;
+  return 0;
+}
+
 async function getFootballStats(home, away, key) {
   if (!key) return { boost: 0, note: "API_FOOTBALL_KEY lipsește.", homeForm: "n/a", awayForm: "n/a", h2hCount: 0 };
   const ck = `${home}|${away}`;
@@ -314,7 +348,13 @@ module.exports = async function handler(req, res) {
               Number(eloStats.eloBoost||0) +
               ti.boost;
 
-            const score = Math.max(0, Math.min(95, baseScore(odd, mk) + totalBoost));
+            const smartBoost =
+              rankingBoost(footballStats.homeForm, footballStats.awayForm) +
+              homeAdvantageBoost() +
+              officialMatchBoost(ev.sportKey || "soccer", ev._source || sourceUsed) +
+              lowOddPenalty(odd);
+
+            const score = Math.max(0, Math.min(95, baseScore(odd, mk) + totalBoost + smartBoost));
             const conf = confidenceLabel(score);
 
             const candidate = {
