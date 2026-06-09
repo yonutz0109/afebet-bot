@@ -1,0 +1,1 @@
+api folder complet: scan.js, odds-providers.js, flashscore.js, odds.js
