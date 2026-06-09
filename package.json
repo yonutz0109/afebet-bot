@@ -1,8 +1,8 @@
 {
   "name": "afebet-bot",
-  "version": "7.5.2",
+  "version": "7.6.0",
   "scripts": {
-    "build": "mkdir -p dist && cp index.html dist/index.html && cp -R public/* dist/ 2>/dev/null || true && cp icon.svg dist/icon.svg 2>/dev/null || true"
+    "build": "echo 'static'"
   },
   "dependencies": {},
   "type": "module"
