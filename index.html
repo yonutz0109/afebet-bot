@@ -86,7 +86,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
 </head>
 <body>
 
-<h1>⚽ SafeBet Bot <span class="badge">v7.4.1 Clean</span></h1>
+<h1>⚽ SafeBet Bot <span class="badge">v7.5.1 Clean.1 Clean</span></h1>
 
 <div id="live-bar">
   <span class="live-dot"></span>
@@ -170,7 +170,7 @@ function scoreValClass(n) { return n>=78?"big":n>=64?"med":"low"; }
 
 function sourcesBadges(sources) {
   if (!sources?.length) return "";
-  return sources.map(s => {
+  return normalizeSourcesForUi(sources).map(s => {
     const warn = s.includes("⚠️") || s.includes("nicio");
     return `<span class="src ${warn?"warn-src":"ok-src"}">${s}</span>`;
   }).join("");
@@ -255,7 +255,7 @@ async function doScan() {
   document.getElementById("recommendation").innerHTML = "";
 
   try {
-    const r = await fetch("/api/scan?t=" + Date.now());
+    const r = await fetch("/api/scan?t=" + Date.now();
     const data = await r.json();
 
     if (!r.ok) {
@@ -350,7 +350,7 @@ async function clearHistory() {
 async function exportHistory() {
   const items = await dbAll().catch(()=>[]);
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(items,null,2)],{type:"application/json"}));
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(items,null,2)],{type:"application/json"});
   a.download = "safebet-history.json";
   a.click();
 }
@@ -358,6 +358,17 @@ async function exportHistory() {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 renderHistory();
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{});
+
+function normalizeSourcesForUi(sources) {
+  if (Array.isArray(sources)) return sources;
+  if (typeof sources === "string" && sources.trim()) return [sources];
+  if (sources && typeof sources === "object") {
+    if (Array.isArray(sources.sources)) return sources.sources;
+    if (typeof sources.sourceUsed === "string") return [sources.sourceUsed];
+  }
+  return [];
+}
+
 </script>
 </body>
 </html>
