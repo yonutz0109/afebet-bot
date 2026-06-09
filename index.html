@@ -255,7 +255,7 @@ async function doScan() {
   document.getElementById("recommendation").innerHTML = "";
 
   try {
-    const r = await fetch("/api/scan?t=" + Date.now();
+    const r = await fetch("/api/scan?t=" + Date.now());
     const data = await r.json();
 
     if (!r.ok) {
