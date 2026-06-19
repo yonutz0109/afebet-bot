@@ -2,499 +2,655 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0a0f1e">
-<link rel="manifest" href="/manifest.json">
-<title>SafeBet Bot</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ADAM">
+<title>ADAM — AI Sports Dashboard</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#0a0f1e;color:#e2e8f0;padding:14px;min-height:100vh}
-h1{font-size:24px;font-weight:800;margin:16px 0 18px;display:flex;align-items:center;gap:8px;color:#fff}
-.badge{font-size:11px;color:#64748b;background:#1e293b;padding:3px 9px;border-radius:999px;font-weight:500}
-.card{background:#111827;border:1px solid #1e293b;padding:16px;border-radius:16px;margin-bottom:14px}
-.card-title{font-size:16px;font-weight:700;margin-bottom:12px;color:#f8fafc}
-.btn-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
-button{border:none;padding:11px 16px;border-radius:11px;color:white;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;letter-spacing:.3px}
-button:hover{filter:brightness(1.15)}
-button:disabled{opacity:.35;cursor:not-allowed}
-.btn-scan{background:linear-gradient(135deg,#3b82f6,#6366f1);flex:1;font-size:15px}
-.btn-live{background:#1e293b;border:1px solid #334155;flex:1}
-.btn-live.active{background:#7f1d1d;border-color:#ef4444;color:#fca5a5}
-.btn-gray{background:#1e293b;border:1px solid #334155}
-.btn-win{background:#166534}
-.btn-loss{background:#7f1d1d}
-.status-line{font-size:13px;min-height:20px;margin-bottom:4px}
-.ok{color:#86efac}.warn{color:#fde68a}.err{color:#fca5a5}.info{color:#93c5fd}
-/* Tip card */
-.tip-wrap{margin-top:12px}
-.tip-match{font-size:20px;font-weight:800;color:#fff;margin-bottom:10px;line-height:1.2}
-.tip-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
-.tip-cell{background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:10px 12px}
-.tip-cell-label{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
-.tip-cell-val{font-size:15px;font-weight:700;color:#f1f5f9}
-.tip-cell-val.big{font-size:22px;color:#22c55e}
-.tip-cell-val.med{font-size:22px;color:#fbbf24}
-.tip-cell-val.low{font-size:22px;color:#f87171}
-/* Score bar */
-.score-bar-wrap{margin:10px 0}
-.score-bar-bg{background:#1e293b;border-radius:999px;height:8px;overflow:hidden}
-.score-bar-fill{height:100%;border-radius:999px;transition:width .5s ease}
-.score-bar-labels{display:flex;justify-content:space-between;font-size:10px;color:#475569;margin-top:3px}
-/* Pills */
-.pill{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;margin:2px;border:1px solid transparent}
-.pill-live{background:#450a0a;color:#fca5a5;border-color:#7f1d1d}
-.pill-soon{background:#431407;color:#fed7aa;border-color:#9a3412}
-.pill-today{background:#1e1b4b;color:#a5b4fc;border-color:#3730a3}
-.pill-prematch{background:#1e293b;color:#94a3b8;border-color:#334155}
-.pill-green{background:#052e16;color:#86efac;border-color:#166534}
-.pill-yellow{background:#422006;color:#fde68a;border-color:#92400e}
-.pill-blue{background:#0c1a2e;color:#93c5fd;border-color:#1e40af}
-.pill-red{background:#450a0a;color:#fca5a5;border-color:#7f1d1d}
-.pill-gray{background:#1e293b;color:#94a3b8;border-color:#334155}
-/* Source badges */
-.src{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:600;background:#172033;color:#60a5fa;border:1px solid #1e3a5f;margin:2px}
-.src.ok-src{color:#86efac;background:#052e16;border-color:#166534}
-.src.warn-src{color:#fde68a;background:#422006;border-color:#92400e}
-/* Detalii */
-.detail-section{background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:12px;margin-top:10px}
-.detail-title{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
-.detail-row{font-size:12px;color:#94a3b8;line-height:1.7}
-/* Top list */
-.top-item{padding:10px 0;border-top:1px solid #1e293b}
-.top-item:first-child{border-top:none}
-.top-name{font-size:14px;font-weight:700;color:#e2e8f0;margin-bottom:5px}
-.top-meta{font-size:12px;color:#64748b}
-/* Live pulse */
-.live-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;animation:p 1.2s ease-in-out infinite;margin-right:4px}
-@keyframes p{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}
-#live-bar{display:none;align-items:center;gap:8px;background:#0f2813;border:1px solid #166534;border-radius:10px;padding:8px 14px;margin-bottom:12px;font-size:13px;font-weight:600;color:#86efac}
-#live-bar.show{display:flex}
-#cd{color:#4ade80;font-size:12px}
-/* Countdown timer */
-.progress-ring{width:36px;height:36px}
-/* Stat boxes */
-.stats-mini{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.stat-mini{background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:6px 10px;text-align:center;flex:1;min-width:70px}
-.stat-mini-v{font-size:18px;font-weight:800;color:#f1f5f9}
-.stat-mini-l{font-size:10px;color:#64748b;text-transform:uppercase}
-/* History */
-.hist-item{padding:10px 0;border-top:1px solid #1e293b;font-size:13px}
-.hist-item:first-child{border-top:none}
-.win-tag{color:#86efac;font-weight:700}
-.loss-tag{color:#fca5a5;font-weight:700}
+:root{
+  --bg:#0b0e14;
+  --panel:#131722;
+  --panel-2:#1a1f2e;
+  --line:#242b3d;
+  --text:#e8ecf4;
+  --text-dim:#8893a8;
+  --accent:#ff8a3d;
+  --accent-2:#ffb673;
+  --value:#3ddc84;
+  --avoid:#ff5c6c;
+  --ok:#ffd23d;
+  --mono:'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  --sans:-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+}
+*{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+html,body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  width:100%;
+  overflow-x:hidden;
+}
+body{padding-bottom:90px;}
+
+/* ── HEADER ── */
+.topbar{
+  position:sticky; top:0; z-index:50;
+  background:linear-gradient(180deg, var(--bg) 70%, transparent);
+  backdrop-filter:blur(12px);
+  padding:14px 16px 8px;
+}
+.brand{
+  display:flex; align-items:baseline; gap:8px;
+}
+.brand .logo{
+  font-family:var(--mono);
+  font-weight:800;
+  font-size:22px;
+  letter-spacing:0.5px;
+  background:linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+}
+.brand .tag{
+  font-size:11px;
+  color:var(--text-dim);
+  font-family:var(--mono);
+}
+.statusline{
+  font-size:12px;
+  color:var(--text-dim);
+  margin-top:6px;
+  font-family:var(--mono);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* ── CONTROLS ── */
+.controls{
+  padding:10px 16px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.row{display:flex; gap:8px; align-items:center;}
+.sport-tabs{
+  display:flex;
+  gap:6px;
+  overflow-x:auto;
+  padding-bottom:2px;
+  -webkit-overflow-scrolling:touch;
+}
+.sport-tabs::-webkit-scrollbar{display:none;}
+.tab{
+  flex:0 0 auto;
+  padding:8px 14px;
+  border-radius:20px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  color:var(--text-dim);
+  font-size:13px;
+  font-weight:600;
+  white-space:nowrap;
+}
+.tab.active{
+  background:var(--accent);
+  color:#1a0f05;
+  border-color:var(--accent);
+}
+.date-row{
+  display:flex;
+  gap:6px;
+  align-items:center;
+}
+.date-row input[type=date]{
+  flex:1;
+  background:var(--panel);
+  border:1px solid var(--line);
+  color:var(--text);
+  padding:9px 10px;
+  border-radius:10px;
+  font-size:14px;
+  font-family:var(--mono);
+}
+.icon-btn{
+  background:var(--panel);
+  border:1px solid var(--line);
+  color:var(--text);
+  width:38px; height:38px;
+  border-radius:10px;
+  font-size:16px;
+  display:flex; align-items:center; justify-content:center;
+}
+.icon-btn:active{background:var(--panel-2);}
+
+.action-row{display:flex; gap:8px;}
+.btn{
+  flex:1;
+  padding:11px 8px;
+  border-radius:10px;
+  border:none;
+  font-weight:700;
+  font-size:13px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+}
+.btn-primary{
+  background:linear-gradient(135deg, var(--accent), #e8651a);
+  color:#1a0f05;
+}
+.btn-secondary{
+  background:var(--panel);
+  color:var(--text);
+  border:1px solid var(--line);
+}
+.btn:active{transform:scale(0.97);}
+.btn.loading{opacity:0.6; pointer-events:none;}
+
+.toggle-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:4px 2px;
+}
+.toggle-label{font-size:13px; color:var(--text-dim); display:flex; gap:8px; align-items:center;}
+.switch{
+  width:38px; height:22px;
+  background:var(--panel-2);
+  border-radius:20px;
+  position:relative;
+  border:1px solid var(--line);
+}
+.switch.on{background:var(--accent);}
+.switch::after{
+  content:'';
+  position:absolute; top:2px; left:2px;
+  width:16px; height:16px;
+  background:#fff;
+  border-radius:50%;
+  transition:left 0.15s;
+}
+.switch.on::after{left:18px;}
+
+/* ── BILETE ── */
+.tickets{
+  padding:10px 16px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.ticket{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px 14px;
+}
+.ticket-head{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-bottom:8px;
+}
+.ticket-dot{width:8px; height:8px; border-radius:50%;}
+.dot-safe{background:var(--value);}
+.dot-value{background:var(--accent);}
+.dot-aggr{background:var(--avoid);}
+.ticket-title{font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-dim);}
+.ticket-empty{font-size:12px; color:var(--text-dim); font-style:italic;}
+.ticket-item{
+  font-size:13px;
+  padding:6px 0;
+  border-top:1px solid var(--line);
+  line-height:1.4;
+}
+.ticket-item:first-of-type{border-top:none;}
+.ticket-item .match{font-weight:600; color:var(--text);}
+.ticket-item .pick{color:var(--accent-2); font-family:var(--mono); font-size:12px;}
+.ticket-item .ai-badge{
+  float:right;
+  font-family:var(--mono);
+  font-size:11px;
+  font-weight:700;
+  color:var(--value);
+}
+
+/* ── MATCH CARDS ── */
+.section-label{
+  padding:14px 16px 6px;
+  font-size:11px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  color:var(--text-dim);
+  font-family:var(--mono);
+}
+.matches{
+  padding:0 16px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.match-card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px 14px;
+  position:relative;
+  overflow:hidden;
+}
+.match-card::before{
+  content:'';
+  position:absolute; left:0; top:0; bottom:0;
+  width:3px;
+}
+.match-card.v-value::before{background:var(--value);}
+.match-card.v-ok::before{background:var(--ok);}
+.match-card.v-avoid::before{background:var(--avoid); opacity:0.5;}
+.match-card.v-noodds::before{background:var(--text-dim); opacity:0.3;}
+
+.match-card.v-avoid{opacity:0.55;}
+
+.mc-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:8px;
+}
+.mc-teams{font-size:14px; font-weight:700; line-height:1.3;}
+.mc-league{font-size:11px; color:var(--text-dim); margin-top:2px;}
+.mc-time{font-size:11px; color:var(--text-dim); font-family:var(--mono); white-space:nowrap;}
+
+.mc-mid{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:10px;
+}
+.ai-circle{
+  width:44px; height:44px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--mono);
+  font-weight:800;
+  font-size:14px;
+  flex:0 0 auto;
+  border:2px solid;
+}
+.ai-circle.hi{border-color:var(--value); color:var(--value);}
+.ai-circle.mid{border-color:var(--ok); color:var(--ok);}
+.ai-circle.lo{border-color:var(--avoid); color:var(--avoid);}
+
+.mc-pick{flex:1; min-width:0;}
+.mc-pick .sel{font-size:13px; font-weight:600; color:var(--text);}
+.mc-pick .verdict-badge{
+  display:inline-block;
+  font-size:10px;
+  font-weight:800;
+  padding:2px 7px;
+  border-radius:6px;
+  margin-top:4px;
+  font-family:var(--mono);
+}
+.vb-value{background:rgba(61,220,132,0.15); color:var(--value);}
+.vb-ok{background:rgba(255,210,61,0.15); color:var(--ok);}
+.vb-avoid{background:rgba(255,92,108,0.15); color:var(--avoid);}
+.vb-noodds{background:rgba(136,147,168,0.15); color:var(--text-dim);}
+
+.mc-odds{
+  display:flex;
+  gap:6px;
+  margin-top:10px;
+  font-family:var(--mono);
+  font-size:12px;
+}
+.odd-chip{
+  flex:1;
+  text-align:center;
+  background:var(--panel-2);
+  border-radius:8px;
+  padding:6px 4px;
+  color:var(--text-dim);
+}
+.odd-chip b{color:var(--text); display:block; font-size:13px;}
+
+.mc-detail{
+  margin-top:8px;
+  padding-top:8px;
+  border-top:1px solid var(--line);
+  font-size:11px;
+  color:var(--text-dim);
+  display:none;
+  line-height:1.5;
+}
+.match-card.expanded .mc-detail{display:block;}
+
+.live-tag{
+  display:inline-block;
+  font-size:10px;
+  font-weight:800;
+  padding:2px 6px;
+  border-radius:5px;
+  background:rgba(255,92,108,0.2);
+  color:var(--avoid);
+  margin-left:6px;
+}
+
+.empty-state{
+  padding:60px 24px;
+  text-align:center;
+  color:var(--text-dim);
+}
+.empty-state .icon{font-size:40px; margin-bottom:12px; opacity:0.5;}
+.empty-state .msg{font-size:14px; line-height:1.5;}
+
+/* ── BOTTOM BAR ── */
+.bottombar{
+  position:fixed;
+  bottom:0; left:0; right:0;
+  background:rgba(19,23,34,0.92);
+  backdrop-filter:blur(16px);
+  border-top:1px solid var(--line);
+  padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+  display:flex;
+  gap:8px;
+  z-index:60;
+}
+
+.toast{
+  position:fixed;
+  bottom:90px; left:50%;
+  transform:translateX(-50%);
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  color:var(--text);
+  padding:10px 18px;
+  border-radius:10px;
+  font-size:13px;
+  z-index:100;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.2s;
+  max-width:90vw;
+  text-align:center;
+}
+.toast.show{opacity:1;}
+.toast.err{border-color:var(--avoid); color:var(--avoid);}
+
+.spinner{
+  width:14px; height:14px;
+  border:2px solid rgba(255,255,255,0.3);
+  border-top-color:#1a0f05;
+  border-radius:50%;
+  animation:spin 0.6s linear infinite;
+  display:none;
+}
+.btn.loading .spinner{display:inline-block;}
+.btn.loading .btn-text{display:none;}
+@keyframes spin{to{transform:rotate(360deg);}}
 </style>
 </head>
 <body>
 
-<h1>⚽ SafeBet Bot <span class="badge">v7.6 Clean.2 Clean.1 Clean.1 Clean</span></h1>
-
-<div id="live-bar">
-  <span class="live-dot"></span>
-  <span>Live activ</span>
-  <span id="cd"></span>
+<div class="topbar">
+  <div class="brand">
+    <span class="logo">ADAM</span>
+    <span class="tag">AI Sports Dashboard</span>
+  </div>
+  <div class="statusline" id="statusline">Apasă UPDATE pentru a începe.</div>
 </div>
 
-<div class="card">
-  <div class="card-title">Cea mai sigură selecție</div>
-  <div id="status" class="status-line info">Apasă „Scanează" pentru a analiza meciurile.</div>
-  <div id="recommendation"></div>
-  <div class="btn-row">
-    <button class="btn-scan" id="btn-scan" onclick="doScan()">🔍 Scanează</button>
-    <button class="btn-live" id="btn-live" onclick="toggleLive()">📡 Live Auto</button>
+<div class="controls">
+  <div class="sport-tabs" id="sportTabs">
+    <button class="tab active" data-sport="football">⚽ Fotbal</button>
+    <button class="tab" data-sport="handball">🤾 Handbal</button>
+    <button class="tab" data-sport="basketball">🏀 Baschet</button>
+    <button class="tab" data-sport="tennis">🎾 Tenis</button>
   </div>
-  <div class="btn-row">
-    <button class="btn-gray" onclick="skipTip()">⏭ Sari</button>
-    <button class="btn-win" onclick="markWin()">✅ Câștigat</button>
-    <button class="btn-loss" onclick="markLoss()">❌ Pierdut</button>
+
+  <div class="date-row">
+    <button class="icon-btn" id="prevDay">‹</button>
+    <input type="date" id="dateInput">
+    <button class="icon-btn" id="nextDay">›</button>
+    <button class="icon-btn" id="todayBtn">●</button>
+  </div>
+
+  <div class="toggle-row">
+    <span class="toggle-label">Toate ligile (inclusiv mici)</span>
+    <div class="switch on" id="showAllSwitch"></div>
   </div>
 </div>
 
-<div class="card">
-  <div class="card-title">📋 Istoric</div>
-  <div id="stats-bar" style="margin-bottom:10px"></div>
-  <div id="history" style="font-size:13px;color:#64748b">Nu ai înregistrări încă.</div>
-  <div class="btn-row">
-    <button class="btn-gray" onclick="clearHistory()">🗑 Șterge</button>
-    <button class="btn-gray" onclick="exportHistory()">📥 Export</button>
+<div class="tickets" id="tickets">
+  <div class="ticket">
+    <div class="ticket-head"><span class="ticket-dot dot-safe"></span><span class="ticket-title">Bilet Safe</span></div>
+    <div id="ticketSafe"><div class="ticket-empty">Fără date încă.</div></div>
+  </div>
+  <div class="ticket">
+    <div class="ticket-head"><span class="ticket-dot dot-value"></span><span class="ticket-title">Bilet Value</span></div>
+    <div id="ticketValue"><div class="ticket-empty">Fără date încă.</div></div>
+  </div>
+  <div class="ticket">
+    <div class="ticket-head"><span class="ticket-dot dot-aggr"></span><span class="ticket-title">Bilet Agresiv</span></div>
+    <div id="ticketAggr"><div class="ticket-empty">Fără date încă.</div></div>
   </div>
 </div>
+
+<div class="section-label" id="matchesLabel">Meciuri</div>
+<div class="matches" id="matches">
+  <div class="empty-state">
+    <div class="icon">⚡</div>
+    <div class="msg">Apasă <b>UPDATE</b> ca să aduci meciurile zilei și predicțiile AI.</div>
+  </div>
+</div>
+
+<div class="bottombar">
+  <button class="btn btn-primary" id="updateBtn">
+    <span class="spinner"></span>
+    <span class="btn-text">🔄 UPDATE</span>
+  </button>
+  <button class="btn btn-secondary" id="backfillBtn">
+    <span class="spinner"></span>
+    <span class="btn-text">📥 Backfill</span>
+  </button>
+  <button class="btn btn-secondary" id="exportBtn">
+    <span class="btn-text">⬇ CSV</span>
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script>
-// ─── State ────────────────────────────────────────────────────────────────────
-let currentTip = null;
-let liveActive = false;
-let liveTimer = null;
-let cdTimer = null;
-let cdSec = 0;
-const LIVE_SEC = 22;
+const state = { sport: "football", date: "", showAll: true, rows: [] };
 
-// ─── IndexedDB ────────────────────────────────────────────────────────────────
-const DB = { name:"safebet7", store:"history", ver:1 };
-let _db = null;
-function openDB() {
-  if (_db) return Promise.resolve(_db);
-  return new Promise((res,rej) => {
-    const r = indexedDB.open(DB.name, DB.ver);
-    r.onupgradeneeded = e => e.target.result.createObjectStore(DB.store,{keyPath:"id",autoIncrement:true});
-    r.onsuccess = e => { _db = e.target.result; res(_db); };
-    r.onerror = () => rej(r.error);
+function todayStr(){
+  const d = new Date();
+  return d.toISOString().slice(0,10);
+}
+state.date = todayStr();
+document.getElementById("dateInput").value = state.date;
+
+function showToast(msg, isErr){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast show" + (isErr ? " err" : "");
+  setTimeout(()=> t.className = "toast", 3000);
+}
+
+function setLoading(btnId, on){
+  document.getElementById(btnId).classList.toggle("loading", on);
+}
+
+// ── Sport tabs ──
+document.getElementById("sportTabs").addEventListener("click", (e)=>{
+  const tab = e.target.closest(".tab");
+  if(!tab) return;
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  tab.classList.add("active");
+  state.sport = tab.dataset.sport;
+});
+
+// ── Date nav ──
+document.getElementById("prevDay").onclick = ()=>{
+  const d = new Date(state.date);
+  d.setDate(d.getDate()-1);
+  state.date = d.toISOString().slice(0,10);
+  document.getElementById("dateInput").value = state.date;
+};
+document.getElementById("nextDay").onclick = ()=>{
+  const d = new Date(state.date);
+  d.setDate(d.getDate()+1);
+  state.date = d.toISOString().slice(0,10);
+  document.getElementById("dateInput").value = state.date;
+};
+document.getElementById("todayBtn").onclick = ()=>{
+  state.date = todayStr();
+  document.getElementById("dateInput").value = state.date;
+};
+document.getElementById("dateInput").addEventListener("change", (e)=>{
+  state.date = e.target.value;
+});
+
+// ── Toggle ──
+document.getElementById("showAllSwitch").onclick = (e)=>{
+  e.target.classList.toggle("on");
+  state.showAll = e.target.classList.contains("on");
+};
+
+// ── Render ──
+function aiClass(ai){
+  if(ai >= 72) return "hi";
+  if(ai >= 58) return "mid";
+  return "lo";
+}
+function verdictClass(v){
+  if(v === "VALUE") return "value";
+  if(v === "OK") return "ok";
+  if(v === "NO ODDS") return "noodds";
+  return "avoid";
+}
+
+function renderMatches(rows){
+  const el = document.getElementById("matches");
+  document.getElementById("matchesLabel").textContent = `Meciuri (${rows.length})`;
+  if(!rows.length){
+    el.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><div class="msg">Niciun meci găsit pentru data și sportul selectat.</div></div>`;
+    return;
+  }
+  el.innerHTML = rows.map((r, i)=>{
+    const vc = verdictClass(r.Verdict);
+    const ac = aiClass(r.AIConfidence);
+    const live = (r.LiveFlag && r.LiveFlag !== "-" && r.LiveFlag !== "LIVE OK")
+      ? `<span class="live-tag">${r.LiveFlag}</span>` : "";
+    return `
+    <div class="match-card v-${vc}" data-idx="${i}">
+      <div class="mc-top">
+        <div>
+          <div class="mc-teams">${r.Meci}${live}</div>
+          <div class="mc-league">${r.Liga}</div>
+        </div>
+        <div class="mc-time">${r.Ora || ""}</div>
+      </div>
+      <div class="mc-mid">
+        <div class="ai-circle ${ac}">${r.AIConfidence}</div>
+        <div class="mc-pick">
+          <div class="sel">${r.SelectieFinala}</div>
+          <span class="verdict-badge vb-${vc}">${r.Verdict}</span>
+        </div>
+      </div>
+      <div class="mc-odds">
+        <div class="odd-chip">1<b>${r.Cota1}</b></div>
+        <div class="odd-chip">X<b>${r.CotaX}</b></div>
+        <div class="odd-chip">2<b>${r.Cota2}</b></div>
+      </div>
+      <div class="mc-detail">
+        ${r.Motiv}<br>
+        Scor estimat: ${r.ScorCorect} · Risc: ${r.RiscFinal}<br>
+        ${r.ValueScore !== "-" ? r.ValueScore : ""}
+      </div>
+    </div>`;
+  }).join("");
+
+  el.querySelectorAll(".match-card").forEach(card=>{
+    card.addEventListener("click", ()=> card.classList.toggle("expanded"));
   });
 }
-async function dbAll() { const d=await openDB(); return new Promise((res,rej)=>{ const r=d.transaction(DB.store,"readonly").objectStore(DB.store).getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>rej(r.error); }); }
-async function dbAdd(item) { const d=await openDB(); return new Promise((res,rej)=>{ const tx=d.transaction(DB.store,"readwrite"); tx.objectStore(DB.store).add(item); tx.oncomplete=res; tx.onerror=()=>rej(tx.error); }); }
-async function dbClear() { const d=await openDB(); return new Promise((res,rej)=>{ const tx=d.transaction(DB.store,"readwrite"); tx.objectStore(DB.store).clear(); tx.oncomplete=res; tx.onerror=()=>rej(tx.error); }); }
 
-// ─── UI helpers ───────────────────────────────────────────────────────────────
-function timePill(s) {
-  if (!s) return "";
-  if (s.includes("LIVE")) return `<span class="pill pill-live">🔴 ${s}</span>`;
-  if (s.includes("CURÂND")) return `<span class="pill pill-soon">⚡ ${s}</span>`;
-  if (s.includes("AZI")) return `<span class="pill pill-today">${s}</span>`;
-  return `<span class="pill pill-prematch">${s}</span>`;
-}
+function renderTickets(rows){
+  const safe = rows.filter(r => r.AIConfidence >= 72 && !["EVITA LIVE","RITM MIC","PACE MIC"].includes(r.LiveFlag)).slice(0,3);
+  const value = rows.filter(r => r.Verdict === "VALUE").slice(0,3);
+  const aggr = rows.filter(r => r.AIConfidence >= 60 && r.AIConfidence < 72 && r.Verdict !== "AVOID").slice(0,3);
 
-function scoreColor(n) {
-  return n >= 80 ? "#22c55e" : n >= 68 ? "#fbbf24" : "#f87171";
-}
-
-function scoreBarHtml(score) {
-  const pct = Math.min(100, score);
-  const col = scoreColor(score);
-  return `<div class="score-bar-wrap">
-    <div class="score-bar-bg"><div class="score-bar-fill" style="width:${pct}%;background:${col}"></div></div>
-    <div class="score-bar-labels"><span>0</span><span>50</span><span>100</span></div>
-  </div>`;
-}
-
-function scoreValClass(n) { return n>=78?"big":n>=64?"med":"low"; }
-
-function sourcesBadges(sources) {
-  if (!sources?.length) return "";
-  return normalizeSourcesForUi(sources).map(s => {
-    const warn = s.includes("⚠️") || s.includes("nicio");
-    return `<span class="src ${warn?"warn-src":"ok-src"}">${s}</span>`;
-  }).join("");
-}
-
-function renderTip(t, accepted) {
-  if (!t) return "<div class='status-line warn'>Nicio selecție disponibilă momentan.</div>";
-  const scoreV = t.safeScore || 0;
-  const liveExtra = t.live ? `<div class="detail-section"><div class="detail-title">Live info</div><div class="detail-row">Min: <b>${t.live.minute}'</b> · Scor: <b>${t.live.score}</b> · Status: ${t.live.status}</div></div>` : "";
-  const footballD = t.footballStats ? `<div class="detail-section"><div class="detail-title">Formă echipe</div><div class="detail-row">${t.footballStats.note||""}</div></div>` : "";
-  const footyD = t.footyStats?.totalXg ? `<div class="detail-section"><div class="detail-title">Expected Goals (xG)</div><div class="detail-row">${t.footyStats.note||""}</div></div>` : "";
-  const eloD = t.eloStats?.homeElo ? `<div class="detail-section"><div class="detail-title">Club ELO</div><div class="detail-row">${t.eloStats.note||""}</div></div>` : "";
-  const flashD = t.flashscoreStats?.available ? `<div class="detail-section"><div class="detail-title">Flashscore</div><div class="detail-row">${t.flashscoreStats.note||""}</div></div>` : "";
-  return `
-  <div class="tip-wrap">
-    <div class="tip-match">${t.match||"Meci necunoscut"}</div>
-    <div style="margin-bottom:10px">
-      ${timePill(t.timeStatus)}
-      <span class="pill pill-gray">📊 ${t.marketLabel||"piață"}</span>
-      <span class="pill pill-gray">📖 ${t.bookmaker||""}</span>
-      ${t.dataSource ? `<span class="src">${t.dataSource}</span>` : ""}
-    </div>
-    <div class="tip-grid">
-      <div class="tip-cell"><div class="tip-cell-label">Selecție</div><div class="tip-cell-val" style="font-size:14px">${t.pick||"—"}</div></div>
-      <div class="tip-cell"><div class="tip-cell-label">Cotă</div><div class="tip-cell-val big">${t.odd||"n/a"}</div></div>
-      <div class="tip-cell" style="grid-column:1/-1">
-        <div class="tip-cell-label">Scor siguranță</div>
-        <div class="tip-cell-val ${scoreValClass(scoreV)}">${scoreV}/100 ${t.confidence||""}</div>
-        ${scoreBarHtml(scoreV)}
-      </div>
-    </div>
-    <div class="tip-cell" style="margin-bottom:10px;background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:10px 12px">
-      <div class="tip-cell-label">Verdict</div>
-      <div style="font-size:16px;font-weight:800;margin-top:4px">${t.verdict||"?"}</div>
-      <div style="font-size:12px;color:#64748b;margin-top:6px">${t.reason||""}</div>
-    </div>
-    ${liveExtra}${footballD}${footyD}${eloD}${flashD}
-  </div>`;
-}
-
-function renderTopList(list) {
-  if (!list?.length) return "";
-  return `<div class="detail-section" style="margin-top:12px">
-    <div class="detail-title">Top ${list.length} selecții găsite</div>
-    ${list.map((x,i) => `<div class="top-item">
-      <div class="top-name">${i+1}. ${x.match}</div>
-      <div class="top-meta">
-        ${timePill(x.timeStatus)}
-        <span class="pill pill-gray">${x.pick}</span>
-        <span class="pill pill-gray">Cotă: ${x.odd}</span>
-        <span class="pill ${x.safeScore>=78?"pill-green":x.safeScore>=64?"pill-yellow":"pill-red"}">Score: ${x.safeScore}/100</span>
-        ${x.dataSource?`<span class="src">${x.dataSource}</span>`:""}
-      </div>
-    </div>`).join("")}
-  </div>`;
-}
-
-function renderReport(r) {
-  return `<div class="detail-section" style="margin-top:12px">
-    <div class="detail-title">Raport scanare · ${r.scannedAt||"—"}</div>
-    <div class="stats-mini">
-      <div class="stat-mini"><div class="stat-mini-v">${r.eventsChecked||0}</div><div class="stat-mini-l">Meciuri</div></div>
-      <div class="stat-mini"><div class="stat-mini-v">${r.outcomesChecked||0}</div><div class="stat-mini-l">Opțiuni</div></div>
-      <div class="stat-mini"><div class="stat-mini-v">${r.liveFixtures||0}</div><div class="stat-mini-l">Live</div></div>
-      <div class="stat-mini"><div class="stat-mini-v">${r.marketStats?.btts||0}</div><div class="stat-mini-l">BTTS</div></div>
-    </div>
-    <div style="margin-top:10px">${sourcesBadges(r.sourceUsed)}</div>
-    <div style="margin-top:6px;font-size:11px;color:#475569">
-      Odds API: ${r.oddsApiWorking?"✅":"⚠️ fallback"} ·
-      FootyStats: ${r.footystatsEnabled?"✅":"—"} ·
-      Flashscore: ${r.flashscoreEnabled?"✅":"—"}
-    </div>
-  </div>`;
-}
-
-// ─── Scan ─────────────────────────────────────────────────────────────────────
-async function doScan() {
-  const btn = document.getElementById("btn-scan");
-  btn.disabled = true;
-  btn.textContent = "⏳ Scanez...";
-  document.getElementById("status").innerHTML = `<span class="info">Analizez meciurile din toate sursele...</span>`;
-  document.getElementById("recommendation").innerHTML = "";
-
-  try {
-    const r = await fetch("/api/scan?t=" + Date.now());
-    const data = await r.json();
-
-    if (!r.ok) {
-      document.getElementById("status").innerHTML = `<span class="err">❌ ${data.error||"Eroare"} — ${data.help||""}</span>`;
-      btn.disabled = false; btn.textContent = "🔍 Scanează";
-      return;
-    }
-
-    currentTip = data.tip || null;
-    const rep = data.report || {};
-
-    document.getElementById("status").innerHTML = data.accepted
-      ? `<span class="ok">✅ Selecție sigură găsită!</span>`
-      : `<span class="warn">⚠️ ${data.message||"Afișez cea mai bună opțiune."}</span>`;
-
-    document.getElementById("recommendation").innerHTML =
-      renderTip(data.tip, data.accepted) +
-      renderTopList(rep.topOverall) +
-      renderReport(rep);
-
-  } catch (e) {
-    document.getElementById("status").innerHTML = `<span class="err">❌ Eroare de rețea: ${e.message}</span>`;
+  function ticketHtml(list){
+    if(!list.length) return `<div class="ticket-empty">Niciun meci calificat azi.</div>`;
+    return list.map(r => `
+      <div class="ticket-item">
+        <span class="ai-badge">AI ${r.AIConfidence}</span>
+        <div class="match">${r.Meci}</div>
+        <div class="pick">${r.PariuExact || r.SelectieFinala}</div>
+      </div>`).join("");
   }
-
-  btn.disabled = false;
-  btn.textContent = "🔍 Scanează";
+  document.getElementById("ticketSafe").innerHTML = ticketHtml(safe);
+  document.getElementById("ticketValue").innerHTML = ticketHtml(value);
+  document.getElementById("ticketAggr").innerHTML = ticketHtml(aggr);
 }
 
-// ─── Live Auto ────────────────────────────────────────────────────────────────
-function toggleLive() {
-  const btn = document.getElementById("btn-live");
-  const bar = document.getElementById("live-bar");
-  if (liveActive) {
-    liveActive = false;
-    clearInterval(liveTimer);
-    clearInterval(cdTimer);
-    btn.textContent = "📡 Live Auto";
-    btn.classList.remove("active");
-    bar.classList.remove("show");
-  } else {
-    liveActive = true;
-    btn.textContent = "⏹ Stop";
-    btn.classList.add("active");
-    bar.classList.add("show");
-    doScan();
-    cdSec = LIVE_SEC;
-    liveTimer = setInterval(() => { doScan(); cdSec = LIVE_SEC; }, LIVE_SEC * 1000);
-    cdTimer = setInterval(() => {
-      cdSec = Math.max(0, cdSec - 1);
-      document.getElementById("cd").textContent = cdSec > 0 ? `· refresh în ${cdSec}s` : "";
-    }, 1000);
+// ── API calls ──
+async function doUpdate(){
+  setLoading("updateBtn", true);
+  document.getElementById("statusline").textContent = "Se actualizează...";
+  try{
+    const res = await fetch("/api/update", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({sport: state.sport, date: state.date, show_all: state.showAll})
+    });
+    const data = await res.json();
+    if(!data.ok){ throw new Error(data.error || "Eroare necunoscută"); }
+    state.rows = data.rows;
+    renderMatches(data.rows);
+    renderTickets(data.rows);
+    const m = data.meta;
+    document.getElementById("statusline").textContent =
+      `${state.sport} | API ${m.total} | afișate ${m.shown}` + (m.odds ? ` | cote ${m.odds}` : "");
+    showToast(`✓ ${data.rows.length} meciuri actualizate`);
+  }catch(e){
+    document.getElementById("statusline").textContent = "Eroare la actualizare.";
+    showToast("Eroare: " + e.message, true);
+  }finally{
+    setLoading("updateBtn", false);
   }
 }
 
-// ─── History ──────────────────────────────────────────────────────────────────
-async function renderHistory() {
-  const items = await dbAll().catch(() => []);
-  const wins = items.filter(x => x.result === "W").length;
-  const losses = items.filter(x => x.result === "L").length;
-  const rate = items.length ? Math.round(wins/items.length*100) : 0;
-
-  document.getElementById("stats-bar").innerHTML = items.length
-    ? `<span class="pill pill-green">✅ ${wins} câștig.</span><span class="pill pill-red">❌ ${losses} piert.</span><span class="pill pill-blue">📊 ${rate}% rată</span>`
-    : "";
-
-  document.getElementById("history").innerHTML = items.length
-    ? items.slice().reverse().map(h => `<div class="hist-item">
-        <span class="${h.result==="W"?"win-tag":"loss-tag"}">${h.result==="W"?"✅ Câștigat":"❌ Pierdut"}</span>
-        · <b>${h.match||"—"}</b><br>
-        <span style="color:#94a3b8">${h.pick||""}</span> · Cotă ${h.odd||"n/a"} · Score ${h.score||"—"}<br>
-        <span style="color:#475569;font-size:11px">${h.time ? new Date(h.time).toLocaleString("ro-RO") : ""}</span>
-      </div>`).join("")
-    : "<span style='color:#475569'>Nu ai înregistrări încă.</span>";
+async function doBackfill(){
+  setLoading("backfillBtn", true);
+  document.getElementById("statusline").textContent = "Backfill în curs...";
+  try{
+    const res = await fetch("/api/backfill", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({sport: state.sport, date: state.date})
+    });
+    const data = await res.json();
+    showToast(data.ok ? `✓ Backfill: ${data.ok_count} zile OK` : "Backfill: nicio zi disponibilă", !data.ok);
+    document.getElementById("statusline").textContent = "Backfill terminat. Apasă UPDATE.";
+  }catch(e){
+    showToast("Eroare backfill: " + e.message, true);
+  }finally{
+    setLoading("backfillBtn", false);
+  }
 }
 
-async function addHistory(result) {
-  if (!currentTip) return;
-  await dbAdd({ result, match: currentTip.match, pick: currentTip.pick, odd: currentTip.odd, score: currentTip.safeScore, time: new Date().toISOString() }).catch(()=>{});
-  renderHistory();
+function doExport(){
+  window.location.href = "/api/export.csv";
 }
 
-function markWin() { addHistory("W"); }
-function markLoss() { addHistory("L"); }
-function skipTip() { currentTip = null; document.getElementById("recommendation").innerHTML = ""; document.getElementById("status").innerHTML = `<span class="info">Scanare sărită.</span>`; }
-
-async function clearHistory() {
-  if (!confirm("Ștergi tot istoricul?")) return;
-  await dbClear().catch(()=>{});
-  renderHistory();
-}
-
-async function exportHistory() {
-  const items = await dbAll().catch(()=>[]);
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(items,null,2)],{type:"application/json"});
-  a.download = "safebet-history.json";
-  a.click();
-}
-
-// ─── Init ─────────────────────────────────────────────────────────────────────
-renderHistory();
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{});
-
-function normalizeSourcesForUi(sources) {
-  if (Array.isArray(sources)) return sources;
-  if (typeof sources === "string" && sources.trim()) return [sources];
-  if (sources && typeof sources === "object") {
-    if (Array.isArray(sources.sources)) return sources.sources;
-    if (typeof sources.sourceUsed === "string") return [sources.sourceUsed];
-  }
-  return [];
-}
-
-</script>
-
-<script>
-(function(){
-  function $(id){ return document.getElementById(id); }
-
-  function normalizeSourcesForUi(sources) {
-    if (Array.isArray(sources)) return sources;
-    if (typeof sources === "string" && sources.trim()) return [sources];
-    if (sources && typeof sources === "object") {
-      if (Array.isArray(sources.sources)) return sources.sources;
-      if (typeof sources.sourceUsed === "string") return [sources.sourceUsed];
-    }
-    return [];
-  }
-
-  function findMainBox(){
-    return document.querySelector(".card") || document.querySelector("main") || document.body;
-  }
-
-  function renderSafeBet(data){
-    const box = findMainBox();
-    const tip = data && data.tip ? data.tip : null;
-    const report = data && data.report ? data.report : {};
-    const accepted = Boolean(data && data.accepted);
-    const sources = normalizeSourcesForUi(report.sourceUsed || data.sourceUsed || report.sources);
-
-    let html = `
-      <h2>Cea mai sigură selecție</h2>
-      <p style="color:${accepted ? '#b8f7c6' : '#ffd28a'}">${data?.message || "Scanare finalizată."}</p>
-      <div class="mini">
-        <b>Scanare:</b> ${report.scannedAt || "-"}<br>
-        <b>Meciuri:</b> ${report.eventsChecked ?? 0} &nbsp;
-        <b>Opțiuni:</b> ${report.outcomesChecked ?? 0}<br>
-        <b>Surse:</b> ${sources.length ? sources.join(", ") : "-"}<br>
-        ${report.sourcesDetail ? `<span style="font-size:11px;color:#64748b">OddsAPI: ${report.sourcesDetail.oddsApi||0} · OpenLiga: ${report.sourcesDetail.openLiga||0} · API-Football: ${report.sourcesDetail.apiFootball||0} meciuri</span>` : ""}
-        ${report.liveFixtures ? `<span style="color:#f59e0b;font-size:12px"> · 🔴 ${report.liveFixtures} live</span>` : ""}
-      </div>
-    `;
-
-    if (tip) {
-      html += `
-        <div class="result">
-          <p style="opacity:.75">Recomandare</p>
-          <h3>${tip.match || "-"}</h3>
-          <p><b>${tip.pick || "-"}</b></p>
-          <p>
-            Piață: ${tip.marketLabel || tip.marketKey || "-"} &nbsp;
-            Cotă: ${tip.odd || "-"}
-          </p>
-          <p>
-            Safe Score: ${tip.safeScore ?? "-"} / 100 &nbsp;
-            ${tip.timeStatus || ""}
-          </p>
-          <p>Bookmaker: ${tip.bookmaker || "-"}</p>
-          <p>Start: ${tip.startTime || "-"}</p>
-          <h3>${tip.verdict || (accepted ? "JOACĂ" : "CEL MAI BUN GĂSIT")}</h3>
-          <p>${tip.reason || ""}</p>
-        </div>
-      `;
-    } else {
-      html += `<p>Nu am găsit selecție acum.</p>`;
-    }
-
-    const oldTop = report.topOverall || [];
-    if (oldTop.length) {
-      html += `<div class="result"><h3>Top selecții</h3>`;
-      html += oldTop.slice(0,5).map(x => `
-        <hr>
-        <p><b>${x.match || "-"}</b><br>${x.pick || "-"}</p>
-        <p>Piață: ${x.marketLabel || x.marketKey || "-"} &nbsp; Cotă: ${x.odd || "-"}</p>
-        <p>Safe Score: ${x.safeScore ?? "-"} / 100 &nbsp; ${x.bookmaker || ""}</p>
-      `).join("");
-      html += `</div>`;
-    }
-
-    box.innerHTML = html;
-  }
-
-  async function runSafeBetScan(){
-    const box = findMainBox();
-    const old = box.innerHTML;
-    box.innerHTML = `<h2>Cea mai sigură selecție</h2><p>🔎 Scanez...</p>`;
-
-    try {
-      const r = await fetch("/api/scan?ts=" + Date.now(), { cache: "no-store" });
-      const text = await r.text();
-      let data;
-      try { data = JSON.parse(text); } catch(e) {
-        throw new Error("Răspuns API invalid: " + text.slice(0,180));
-      }
-      if (!r.ok) throw new Error(data.detail || data.error || "API error " + r.status);
-      renderSafeBet(data);
-    } catch(e) {
-      box.innerHTML = old;
-      const target = findMainBox();
-      target.innerHTML = `
-        <h2>Cea mai sigură selecție</h2>
-        <p style="color:#ffaaa5">❌ Eroare de rețea: ${String(e.message || e)}</p>
-        <button id="scanBtn">🔍 Scanează</button>
-        <button id="liveBtn">📡 Live Auto</button>
-        <button id="skipBtn">⏭️ Sari</button>
-        <button id="winBtn">✅ Câștigat</button>
-        <button id="loseBtn">❌ Pierdut</button>
-      `;
-      attachSafeBetButtons();
-    }
-  }
-
-  function attachSafeBetButtons(){
-    const buttons = Array.from(document.querySelectorAll("button"));
-    for (const b of buttons) {
-      const txt = (b.textContent || "").toLowerCase();
-      if (txt.includes("scaneaz") || txt.includes("scan")) {
-        b.onclick = function(ev){ ev.preventDefault(); runSafeBetScan(); };
-      }
-      if (txt.includes("live")) {
-        b.onclick = function(ev){ ev.preventDefault(); runSafeBetScan(); };
-      }
-    }
-  }
-
-  window.runSafeBetScan = runSafeBetScan;
-  document.addEventListener("DOMContentLoaded", attachSafeBetButtons);
-  setTimeout(attachSafeBetButtons, 500);
-})();
+document.getElementById("updateBtn").onclick = doUpdate;
+document.getElementById("backfillBtn").onclick = doBackfill;
+document.getElementById("exportBtn").onclick = doExport;
 </script>
 
 </body>
